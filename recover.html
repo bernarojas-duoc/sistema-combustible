@@ -83,7 +83,12 @@
         </div>
         <div class="mb-3">
           <label for="confirmPassword" class="form-label">Confirmar contraseña</label>
-          <input type="password" class="form-control" id="confirmPassword" placeholder="••••••••">
+          <div class="input-group">
+            <input type="password" class="form-control" id="confirmPassword" placeholder="••••••••">
+            <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPwd">
+              <i class="bi bi-eye" id="eyeIconConfirm"></i>
+            </button>
+          </div>
           <div class="invalid-feedback" id="confirmPassword-feedback"></div>
         </div>
         <div class="d-grid">
@@ -141,6 +146,13 @@
     const icon = document.getElementById('eyeIcon');
     pwd.type = pwd.type === 'password' ? 'text' : 'password';
     icon.className = pwd.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+  });
+
+  document.getElementById('toggleConfirmPwd').addEventListener('click', () => {
+    const pwdConfirm = document.getElementById('confirmPassword');
+    const iconConfirm = document.getElementById('eyeIconConfirm');
+    pwdConfirm.type = pwdConfirm.type === 'password' ? 'text' : 'password';
+    iconConfirm.className = pwdConfirm.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
   });
 
   document.getElementById('newPassword').addEventListener('input', function() {

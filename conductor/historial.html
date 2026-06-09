@@ -134,10 +134,11 @@
           <td>${formatearNumero(c.odometro)} km</td>
           <td>${kmlHtml}</td>
           <td><small>${c.grifo}</small></td>
-          <td>${estadoBadge(c.estado)}</td>
+          <td>${estadoBadge(c.estado, c.motivoRechazo)}</td>
           <td class="text-center">${obs}</td>
         </tr>`;
     });
+    initPopovers();
   }
 
   function aplicarFiltros() {

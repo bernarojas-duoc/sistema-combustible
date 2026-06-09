@@ -75,7 +75,23 @@
                   <th>Bus</th>
                   <th>Litros</th>
                   <th>Km/L</th>
-                  <th>Estado</th>
+                  <th>
+                    Estado
+                    <i class="bi bi-info-circle text-warning ms-1 estado-info"
+                       role="button"
+                       tabindex="0"
+                       data-bs-toggle="popover"
+                       data-bs-trigger="focus"
+                       data-bs-placement="top"
+                       data-bs-html="true"
+                       data-bs-title="Estados de una carga"
+                       data-bs-content='
+                         <div class="estado-row"><span class="badge bg-secondary">Pendiente</span><small>Registrada, esperando revisi&oacute;n del supervisor.</small></div>
+                         <div class="estado-row"><span class="badge bg-success">Aprobado</span><small>Validada por el supervisor.</small></div>
+                         <div class="estado-row"><span class="badge bg-danger">Alerta</span><small>Consumo an&oacute;malo (Km/L fuera de lo esperado).</small></div>
+                         <div class="estado-row"><span class="badge bg-dark">Rechazado</span><small>Marcada como inv&aacute;lida por el supervisor (queda registrada con un motivo, puede reabrirse).</small></div>
+                       '></i>
+                  </th>
                   <th></th>
                 </tr>
               </thead>
@@ -155,7 +171,7 @@
         <td><span class="badge bg-secondary">${nombreBus(c.busId).split('—')[0].trim()}</span></td>
         <td>${c.litros} L</td>
         <td>${calcularConsumo(c) || '-'}</td>
-        <td>${estadoBadge(c.estado)}</td>
+        <td>${estadoBadge(c.estado, c.motivoRechazo)}</td>
         <td><a href="historial-general.html" class="btn btn-xs btn-outline-secondary btn-sm py-0 px-1"><i class="bi bi-eye"></i></a></td>
       </tr>`;
   });
@@ -177,6 +193,9 @@
         </div>
       </li>`;
   });
+
+  // Inicializar popovers (info de estados + motivos de rechazo)
+  initPopovers();
 
   // Alertas
   const alertas = todasCargas.filter(c => c.estado === 'alerta');

@@ -37,6 +37,7 @@
               <div class="col-md-6">
                 <label for="fecha" class="form-label">Fecha</label>
                 <input type="date" class="form-control" id="fecha">
+                <div class="form-text text-muted small">No se permiten fechas futuras.</div>
                 <div class="invalid-feedback" id="fecha-feedback"></div>
               </div>
 
@@ -64,6 +65,7 @@
                   <input type="number" class="form-control" id="odometroAnterior" placeholder="0" min="0">
                   <span class="input-group-text bg-dark border-secondary text-muted">km</span>
                 </div>
+                <div class="form-text text-muted small" id="odometro-anterior-hint"></div>
                 <div class="invalid-feedback" id="odometroAnterior-feedback"></div>
               </div>
 
@@ -138,8 +140,11 @@
   const buses = getBuses().filter(b => b.activo);
   llenarSelect('busId', buses, 'id', 'patente');
 
-  // Fecha por defecto: hoy
-  document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+  // Fecha por defecto y máxima: hoy en zona horaria local (no se aceptan fechas futuras)
+  const hoyISO = fechaLocalISO();
+  const inputFecha = document.getElementById('fecha');
+  inputFecha.value = hoyISO;
+  inputFecha.max = hoyISO;
 
   // Calcular km en tiempo real
   function actualizarPreview() {
@@ -179,6 +184,27 @@
     document.getElementById(id).addEventListener('input', actualizarPreview)
   );
 
+  // Al elegir un bus: precargar el odómetro de su última carga conocida
+  document.getElementById('busId').addEventListener('change', function() {
+    const busId = parseInt(this.value);
+    const inputAnterior = document.getElementById('odometroAnterior');
+    const hint = document.getElementById('odometro-anterior-hint');
+    if (!busId) {
+      hint.textContent = '';
+      return;
+    }
+    // Última carga válida del bus = mayor odómetro entre cargas no rechazadas
+    const previas = getCargas().filter(c => c.busId === busId && c.estado !== 'rechazado');
+    if (previas.length === 0) {
+      hint.innerHTML = '<i class="bi bi-info-circle me-1"></i>Sin cargas previas registradas para este bus.';
+      return;
+    }
+    const ultima = previas.reduce((a, b) => (b.odometro > a.odometro ? b : a));
+    inputAnterior.value = ultima.odometro;
+    hint.innerHTML = `<i class="bi bi-info-circle me-1"></i>Autocompletado desde la última carga del ${formatearFecha(ultima.fecha)} (${formatearNumero(ultima.odometro)} km).`;
+    actualizarPreview();
+  });
+
   document.getElementById('form-carga').addEventListener('submit', function(e) {
     e.preventDefault();
     const busId = document.getElementById('busId').value;
@@ -191,18 +217,22 @@
 
     let valido = true;
     valido = mostrarError('busId', Validar.requerido(busId, 'Bus')) && valido;
-    valido = mostrarError('fecha', Validar.requerido(fecha, 'Fecha')) && valido;
+    const erroresFecha = Validar.requerido(fecha, 'Fecha');
+    if (erroresFecha.length === 0 && fecha > hoyISO) {
+      erroresFecha.push('La fecha no puede ser futura');
+    }
+    valido = mostrarError('fecha', erroresFecha) && valido;
     valido = mostrarError('litros', Validar.numero(litros, 'Litros', 1, 500)) && valido;
     valido = mostrarError('odometro', Validar.numero(odometro, 'Odómetro', 0)) && valido;
     valido = mostrarError('grifo', Validar.requerido(grifo, 'Grifo')) && valido;
+    valido = mostrarError('odometroAnterior', Validar.numero(odometroAnterior, 'Odómetro anterior', 0)) && valido;
 
     const odo = parseFloat(odometro);
     const odoAnt = parseFloat(odometroAnterior);
-    if (!isNaN(odo) && !isNaN(odoAnt) && odo <= odoAnt) {
-      mostrarError('odometro', ['El odómetro actual debe ser mayor al anterior']);
+    if (!isNaN(odo) && !isNaN(odoAnt) && odoAnt > odo) {
+      mostrarError('odometroAnterior', ['El odómetro anterior no puede ser mayor al actual']);
       valido = false;
     }
-    valido = mostrarError('odometroAnterior', Validar.numero(odometroAnterior, 'Odómetro anterior', 0)) && valido;
 
     if (!valido) return;
 

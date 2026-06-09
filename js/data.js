@@ -59,10 +59,17 @@ function initData() {
   }
 }
 
+// Devuelve fecha en formato YYYY-MM-DD usando la zona horaria local del navegador
+// (evita el desfase de un día que produce toISOString cuando UTC y local discrepan)
+function fechaLocalISO(d) {
+  if (!d) d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function formatFecha(base, diasAtras) {
   const d = new Date(base);
   d.setDate(d.getDate() + diasAtras);
-  return d.toISOString().split('T')[0];
+  return fechaLocalISO(d);
 }
 
 // CRUD genérico

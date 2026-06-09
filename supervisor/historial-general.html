@@ -105,14 +105,19 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" id="modal-body"></div>
-      <div class="modal-footer border-secondary">
-        <button type="button" class="btn btn-success" id="btn-aprobar">
-          <i class="bi bi-check-circle me-1"></i>Aprobar
-        </button>
-        <button type="button" class="btn btn-danger" id="btn-rechazar">
-          <i class="bi bi-x-circle me-1"></i>Rechazar
-        </button>
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+      <div class="modal-footer border-secondary flex-column align-items-stretch gap-2">
+        <div id="motivo-wrapper" class="d-none w-100">
+          <label class="form-label small text-danger mb-1" for="motivo-rechazo">
+            Motivo del rechazo <span class="text-muted">(requerido)</span>
+          </label>
+          <textarea class="form-control form-control-sm bg-dark text-light border-secondary"
+                    id="motivo-rechazo" rows="2"
+                    placeholder="Ej: Odómetro inconsistente, litros no coinciden con boleta, ..."></textarea>
+          <div class="invalid-feedback d-block d-none" id="motivo-error">
+            Debes indicar un motivo para rechazar.
+          </div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 w-100" id="modal-acciones"></div>
       </div>
     </div>
   </div>
@@ -153,9 +158,14 @@
     cargas.forEach(c => {
       const kml = calcularConsumo(c);
       const kmlHtml = kml ? `<span class="${esAlerta(c) ? 'text-danger' : 'text-success'}">${kml}</span>` : '-';
-      const acciones = (c.estado === 'pendiente' || c.estado === 'alerta')
-        ? `<button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="abrirModal(${c.id})"><i class="bi bi-pencil-square"></i></button>`
-        : `<span class="text-muted small">—</span>`;
+      let acciones;
+      if (c.estado === 'pendiente' || c.estado === 'alerta') {
+        acciones = `<button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="abrirModal(${c.id})"><i class="bi bi-pencil-square"></i></button>`;
+      } else if (c.estado === 'rechazado') {
+        acciones = `<button class="btn btn-sm btn-outline-info py-0 px-2" onclick="abrirModal(${c.id})" title="Ver motivo / reabrir"><i class="bi bi-arrow-counterclockwise"></i></button>`;
+      } else {
+        acciones = `<span class="text-muted small">—</span>`;
+      }
       tbody.innerHTML += `
         <tr>
           <td class="text-muted small">#${c.id}</td>
@@ -166,10 +176,11 @@
           <td>${formatearNumero(c.odometro)} km</td>
           <td>${kmlHtml}</td>
           <td><small class="text-muted">${c.grifo}</small></td>
-          <td>${estadoBadge(c.estado)}</td>
+          <td>${estadoBadge(c.estado, c.motivoRechazo)}</td>
           <td>${acciones}</td>
         </tr>`;
     });
+    initPopovers();
   }
 
   function aplicarFiltros() {
@@ -209,27 +220,91 @@
         <div class="col-6"><span class="text-muted">Odómetro:</span><br>${formatearNumero(c.odometro)} km</div>
         <div class="col-6"><span class="text-muted">Grifo:</span><br>${c.grifo}</div>
         ${c.observaciones ? `<div class="col-12"><span class="text-muted">Obs:</span><br>${c.observaciones}</div>` : ''}
+        ${c.estado === 'rechazado' && c.motivoRechazo ? `<div class="col-12 mt-2"><span class="text-danger small fw-bold">Motivo del rechazo:</span><br><em>${c.motivoRechazo}</em></div>` : ''}
       </div>
       <div class="mt-3">${estadoBadge(c.estado)}</div>`;
+
+    // Reset del estado del modal
+    document.getElementById('motivo-wrapper').classList.add('d-none');
+    document.getElementById('motivo-rechazo').value = '';
+    document.getElementById('motivo-error').classList.add('d-none');
+    renderAccionesModal(c);
+
     modal = new bootstrap.Modal(document.getElementById('modalAccion'));
     modal.show();
   }
 
-  document.getElementById('btn-aprobar').addEventListener('click', () => {
-    cargaSeleccionada.estado = 'aprobado';
-    saveCarga(cargaSeleccionada);
-    modal.hide();
-    todasCargas = getCargas().sort((a, b) => b.fecha.localeCompare(a.fecha));
-    renderTabla(todasCargas);
-  });
+  function renderAccionesModal(c) {
+    const cont = document.getElementById('modal-acciones');
+    if (c.estado === 'rechazado') {
+      cont.innerHTML = `
+        <button type="button" class="btn btn-outline-warning" id="btn-reabrir">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Reabrir carga
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>`;
+      document.getElementById('btn-reabrir').addEventListener('click', reabrirCarga);
+    } else {
+      cont.innerHTML = `
+        <button type="button" class="btn btn-success" id="btn-aprobar">
+          <i class="bi bi-check-circle me-1"></i>Aprobar
+        </button>
+        <button type="button" class="btn btn-danger" id="btn-rechazar">
+          <i class="bi bi-x-circle me-1"></i>Rechazar
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>`;
+      document.getElementById('btn-aprobar').addEventListener('click', aprobarCarga);
+      document.getElementById('btn-rechazar').addEventListener('click', clickRechazar);
+    }
+  }
 
-  document.getElementById('btn-rechazar').addEventListener('click', () => {
-    cargaSeleccionada.estado = 'rechazado';
+  function aprobarCarga() {
+    cargaSeleccionada.estado = 'aprobado';
+    delete cargaSeleccionada.motivoRechazo;
     saveCarga(cargaSeleccionada);
     modal.hide();
+    refrescarTabla();
+  }
+
+  // Primer click: muestra textarea. Segundo click (ya visible): valida y rechaza.
+  function clickRechazar() {
+    const wrapper = document.getElementById('motivo-wrapper');
+    const input = document.getElementById('motivo-rechazo');
+    const error = document.getElementById('motivo-error');
+    const btn = document.getElementById('btn-rechazar');
+
+    if (wrapper.classList.contains('d-none')) {
+      wrapper.classList.remove('d-none');
+      btn.innerHTML = '<i class="bi bi-x-circle me-1"></i>Confirmar rechazo';
+      input.focus();
+      return;
+    }
+    const motivo = input.value.trim();
+    if (!motivo) {
+      error.classList.remove('d-none');
+      input.focus();
+      return;
+    }
+    cargaSeleccionada.estado = 'rechazado';
+    cargaSeleccionada.motivoRechazo = motivo;
+    saveCarga(cargaSeleccionada);
+    modal.hide();
+    refrescarTabla();
+  }
+
+  function reabrirCarga() {
+    if (!confirm('¿Reabrir esta carga rechazada? Volverá a quedar pendiente de revisión.')) return;
+    // Si la carga sigue siendo anómala, vuelve a 'alerta'; si no, a 'pendiente'
+    cargaSeleccionada.estado = esAlerta(cargaSeleccionada) ? 'alerta' : 'pendiente';
+    delete cargaSeleccionada.motivoRechazo;
+    saveCarga(cargaSeleccionada);
+    modal.hide();
+    refrescarTabla();
+  }
+
+  function refrescarTabla() {
     todasCargas = getCargas().sort((a, b) => b.fecha.localeCompare(a.fecha));
     renderTabla(todasCargas);
-  });
+  }
 
   renderTabla(todasCargas);
 </script>

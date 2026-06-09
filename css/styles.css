@@ -18,6 +18,11 @@ body {
   min-height: 100vh;
 }
 
+/* Fix para Bootstrap text-muted en tema oscuro */
+.text-muted {
+  color: var(--color-muted) !important;
+}
+
 /* Navbar */
 .navbar-brand { letter-spacing: 1px; }
 .navbar { box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
@@ -31,6 +36,7 @@ body {
 .card-header {
   background-color: rgba(245,158,11,0.1);
   border-bottom: 1px solid var(--color-border);
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -54,9 +60,20 @@ body {
 .table tbody tr:hover { background-color: rgba(245,158,11,0.05); }
 
 /* Formularios */
-.form-control, .form-select {
+.form-control, .form-select, .input-group-text {
   background-color: #111827;
   border-color: var(--color-border);
+  color: var(--color-text);
+}
+.input-group-text {
+  color: var(--color-muted);
+}
+.input-group .btn-outline-secondary {
+  border-color: var(--color-border);
+  color: var(--color-muted);
+}
+.input-group .btn-outline-secondary:hover {
+  background-color: var(--color-border);
   color: var(--color-text);
 }
 .form-control:focus, .form-select:focus {
@@ -67,6 +84,12 @@ body {
 }
 .form-control::placeholder { color: var(--color-muted); }
 .form-label { color: var(--color-muted); font-size: 0.88rem; font-weight: 500; }
+
+/* Icono calendario en tema oscuro */
+::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
 
 /* Inputs en dark select options */
 .form-select option { background-color: #1f2937; color: var(--color-text); }
@@ -113,6 +136,43 @@ body {
 
 /* Alert custom */
 .alert { border-radius: 10px; }
+
+/* Popover oscuro (info de estados, etc.) */
+.popover {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  max-width: 280px;
+}
+.popover .popover-header {
+  background-color: rgba(245,158,11,0.12);
+  color: var(--color-primary);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+}
+.popover .popover-body { color: var(--color-text); }
+.popover .popover-arrow::before { border-top-color: var(--color-border); }
+.popover .popover-arrow::after  { border-top-color: var(--color-card); }
+
+.estado-info { cursor: pointer; }
+.estado-info:focus { outline: none; }
+
+/* Filas del popover de estados: badge a la izquierda, texto alineado */
+.popover .estado-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  align-items: start;
+  gap: 0.6rem;
+  margin-bottom: 0.55rem;
+  line-height: 1.25;
+}
+.popover .estado-row:last-child { margin-bottom: 0; }
+.popover .estado-row .badge {
+  width: 100%;
+  text-align: center;
+  margin-top: 1px;
+}
+.popover .estado-row small { color: var(--color-text); }
 
 /* Sidebar (solo desktop) */
 @media (min-width: 992px) {

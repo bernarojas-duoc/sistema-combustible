@@ -69,6 +69,7 @@
               <th>Km/L real</th>
               <th>Km/L esp.</th>
               <th>Resolución</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="tabla-alertas-resueltas"></tbody>
@@ -76,6 +77,36 @@
       </div>
       <div id="sin-resueltas" class="text-center text-muted py-3 d-none">
         <small>No hay alertas resueltas aún.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal motivo de rechazo -->
+<div class="modal fade" id="modalMotivo" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title"><i class="bi bi-x-circle text-danger me-2"></i>Rechazar carga</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-2" id="motivo-info"></p>
+        <label class="form-label small text-danger mb-1" for="motivo-input">
+          Motivo del rechazo <span class="text-muted">(requerido)</span>
+        </label>
+        <textarea class="form-control form-control-sm bg-dark text-light border-secondary"
+                  id="motivo-input" rows="3"
+                  placeholder="Ej: Odómetro inconsistente, litros no coinciden con boleta, ..."></textarea>
+        <div class="invalid-feedback d-block d-none" id="motivo-input-error">
+          Debes indicar un motivo para rechazar.
+        </div>
+      </div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-danger" id="btn-confirmar-rechazo">
+          <i class="bi bi-x-circle me-1"></i>Confirmar rechazo
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
       </div>
     </div>
   </div>
@@ -152,15 +183,20 @@
         <td>${desvHtml}</td>
         <td>${c.observaciones ? `<span title="${c.observaciones}"><i class="bi bi-chat-text text-muted"></i></span>` : '-'}</td>
         <td class="d-flex gap-1">
-          <button class="btn btn-sm btn-success py-0 px-2" onclick="resolver(${c.id},'aprobado')">
+          <button class="btn btn-sm btn-success py-0 px-2" onclick="aprobar(${c.id})" title="Aprobar">
             <i class="bi bi-check"></i>
           </button>
-          <button class="btn btn-sm btn-danger py-0 px-2" onclick="resolver(${c.id},'rechazado')">
+          <button class="btn btn-sm btn-danger py-0 px-2" onclick="abrirModalMotivo(${c.id})" title="Rechazar">
             <i class="bi bi-x"></i>
           </button>
         </td>
       </tr>`;
     } else {
+      const accionReabrir = c.estado === 'rechazado'
+        ? `<button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="reabrir(${c.id})" title="Reabrir carga">
+             <i class="bi bi-arrow-counterclockwise"></i>
+           </button>`
+        : '';
       return `<tr>
         <td>${formatearFecha(c.fecha)}</td>
         <td><small>${nombreConductor(c.conductorId)}</small></td>
@@ -168,7 +204,8 @@
         <td>${c.litros} L</td>
         <td class="text-muted">${kml || '-'}</td>
         <td>${esperado}</td>
-        <td>${estadoBadge(c.estado)}</td>
+        <td>${estadoBadge(c.estado, c.motivoRechazo)}</td>
+        <td>${accionReabrir}</td>
       </tr>`;
     }
   }
@@ -184,11 +221,53 @@
     const tbResueltas = document.getElementById('tabla-alertas-resueltas');
     tbResueltas.innerHTML = resueltas.map(c => filaAlerta(c, false)).join('');
     document.getElementById('sin-resueltas').classList.toggle('d-none', resueltas.length > 0);
+
+    initPopovers();
   }
 
-  function resolver(id, estado) {
+  function aprobar(id) {
     const carga = getCargaById(id);
-    carga.estado = estado;
+    carga.estado = 'aprobado';
+    delete carga.motivoRechazo;
+    saveCarga(carga);
+    renderAlertas();
+  }
+
+  let modalMotivo, idEnRechazo = null;
+
+  function abrirModalMotivo(id) {
+    idEnRechazo = id;
+    const c = getCargaById(id);
+    const bus = getBusById(c.busId);
+    document.getElementById('motivo-info').textContent =
+      `Carga #${c.id} — ${nombreConductor(c.conductorId)} — ${bus ? bus.patente : ''} — ${c.litros} L`;
+    document.getElementById('motivo-input').value = '';
+    document.getElementById('motivo-input-error').classList.add('d-none');
+    modalMotivo = modalMotivo || new bootstrap.Modal(document.getElementById('modalMotivo'));
+    modalMotivo.show();
+    setTimeout(() => document.getElementById('motivo-input').focus(), 200);
+  }
+
+  document.getElementById('btn-confirmar-rechazo').addEventListener('click', () => {
+    const motivo = document.getElementById('motivo-input').value.trim();
+    if (!motivo) {
+      document.getElementById('motivo-input-error').classList.remove('d-none');
+      document.getElementById('motivo-input').focus();
+      return;
+    }
+    const carga = getCargaById(idEnRechazo);
+    carga.estado = 'rechazado';
+    carga.motivoRechazo = motivo;
+    saveCarga(carga);
+    modalMotivo.hide();
+    renderAlertas();
+  });
+
+  function reabrir(id) {
+    if (!confirm('¿Reabrir esta carga rechazada? Volverá a quedar como alerta activa.')) return;
+    const carga = getCargaById(id);
+    carga.estado = esAlerta(carga) ? 'alerta' : 'pendiente';
+    delete carga.motivoRechazo;
     saveCarga(carga);
     renderAlertas();
   }

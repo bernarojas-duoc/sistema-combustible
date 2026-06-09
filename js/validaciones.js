@@ -45,11 +45,17 @@ function mostrarError(inputId, errores) {
   if (errores.length > 0) {
     input.classList.add('is-invalid');
     input.classList.remove('is-valid');
-    if (feedback) feedback.textContent = errores[0];
+    if (feedback) {
+      feedback.textContent = errores[0];
+      feedback.classList.add('d-block');
+    }
   } else {
     input.classList.remove('is-invalid');
     input.classList.add('is-valid');
-    if (feedback) feedback.textContent = '';
+    if (feedback) {
+      feedback.textContent = '';
+      feedback.classList.remove('d-block');
+    }
   }
   return errores.length === 0;
 }
@@ -59,6 +65,9 @@ function limpiarValidaciones(formId) {
   if (!form) return;
   form.querySelectorAll('.is-invalid, .is-valid').forEach(el => {
     el.classList.remove('is-invalid', 'is-valid');
+  });
+  form.querySelectorAll('.invalid-feedback.d-block').forEach(el => {
+    el.classList.remove('d-block');
   });
 }
 

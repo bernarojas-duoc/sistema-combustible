@@ -78,7 +78,23 @@
               <th>Litros</th>
               <th>Odómetro</th>
               <th>Km/L</th>
-              <th>Estado</th>
+              <th>
+                Estado
+                <i class="bi bi-info-circle text-warning ms-1 estado-info"
+                   role="button"
+                   tabindex="0"
+                   data-bs-toggle="popover"
+                   data-bs-trigger="focus"
+                   data-bs-placement="top"
+                   data-bs-html="true"
+                   data-bs-title="Estados de una carga"
+                   data-bs-content='
+                     <div class="estado-row"><span class="badge bg-secondary">Pendiente</span><small>Registrada, esperando revisi&oacute;n del supervisor.</small></div>
+                     <div class="estado-row"><span class="badge bg-success">Aprobado</span><small>Validada por el supervisor.</small></div>
+                     <div class="estado-row"><span class="badge bg-danger">Alerta</span><small>Consumo an&oacute;malo (Km/L fuera de lo esperado).</small></div>
+                     <div class="estado-row"><span class="badge bg-dark">Rechazado</span><small>Marcada como inv&aacute;lida por el supervisor. Mira el icono junto al badge para ver el motivo.</small></div>
+                   '></i>
+              </th>
             </tr>
           </thead>
           <tbody id="tabla-cargas"></tbody>
@@ -139,10 +155,11 @@
           <td><strong>${c.litros} L</strong></td>
           <td>${formatearNumero(c.odometro)} km</td>
           <td>${km ? km + ' km/L' : '-'}</td>
-          <td>${estadoBadge(c.estado)}</td>
+          <td>${estadoBadge(c.estado, c.motivoRechazo)}</td>
         </tr>`;
     });
   }
+  initPopovers();
 </script>
 </body>
 </html>
