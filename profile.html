@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Perfil — SCF Nortrans</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+<div id="navbar"></div>
+
+<div class="container content-area py-4">
+  <div class="page-header d-flex align-items-center gap-3">
+    <i class="bi bi-person-circle fs-2 text-warning"></i>
+    <div>
+      <h2 class="mb-0">Mi Perfil</h2>
+      <small class="text-muted">Actualiza tu información personal</small>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Datos personales -->
+    <div class="col-lg-7">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-person me-2"></i>Datos personales</div>
+        <div class="card-body">
+          <div id="alerta-perfil"></div>
+          <form id="form-perfil" novalidate>
+            <div class="row g-3">
+              <div class="col-12">
+                <label for="nombre" class="form-label">Nombre completo</label>
+                <input type="text" class="form-control" id="nombre">
+                <div class="invalid-feedback" id="nombre-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label for="rut" class="form-label">RUT</label>
+                <input type="text" class="form-control" id="rut" placeholder="12.345.678-9">
+                <div class="invalid-feedback" id="rut-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label for="telefono" class="form-label">Teléfono</label>
+                <input type="text" class="form-control" id="telefono">
+                <div class="invalid-feedback" id="telefono-feedback"></div>
+              </div>
+              <div class="col-12">
+                <label for="email" class="form-label">Correo electrónico</label>
+                <input type="email" class="form-control" id="email">
+                <div class="invalid-feedback" id="email-feedback"></div>
+              </div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+              <button type="submit" class="btn btn-warning">
+                <i class="bi bi-check-lg me-1"></i>Guardar cambios
+              </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="cargarDatosPerfil()">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cambiar contraseña -->
+    <div class="col-lg-5">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-lock me-2"></i>Cambiar contraseña</div>
+        <div class="card-body">
+          <div id="alerta-pwd"></div>
+          <form id="form-pwd" novalidate>
+            <div class="mb-3">
+              <label for="pwdActual" class="form-label">Contraseña actual</label>
+              <input type="password" class="form-control" id="pwdActual" placeholder="••••••••">
+              <div class="invalid-feedback" id="pwdActual-feedback"></div>
+            </div>
+            <div class="mb-3">
+              <label for="pwdNueva" class="form-label">Nueva contraseña</label>
+              <input type="password" class="form-control" id="pwdNueva" placeholder="••••••••">
+              <div class="invalid-feedback" id="pwdNueva-feedback"></div>
+              <div class="mt-2">
+                <div class="progress strength-bar">
+                  <div class="progress-bar bg-secondary" id="strength-bar" style="width:0%"></div>
+                </div>
+                <small class="text-muted" id="strength-text"></small>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="pwdConfirm" class="form-label">Confirmar nueva contraseña</label>
+              <input type="password" class="form-control" id="pwdConfirm" placeholder="••••••••">
+              <div class="invalid-feedback" id="pwdConfirm-feedback"></div>
+            </div>
+            <div class="d-grid">
+              <button type="submit" class="btn btn-outline-warning">
+                <i class="bi bi-lock-fill me-1"></i>Actualizar contraseña
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Info rol -->
+      <div class="card mt-3">
+        <div class="card-body text-center py-3">
+          <div id="rol-badge" class="mb-1"></div>
+          <small class="text-muted">Rol asignado en el sistema</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/validaciones.js"></script>
+<script src="js/utils.js"></script>
+<script>
+  initData();
+  const session = requireAuth();
+  renderNavbar();
+  marcarNavActivo();
+
+  function cargarDatosPerfil() {
+    const u = getUsuarioById(session.id);
+    document.getElementById('nombre').value = u.nombre || '';
+    document.getElementById('rut').value = u.rut || '';
+    document.getElementById('telefono').value = u.telefono || '';
+    document.getElementById('email').value = u.email || '';
+    document.getElementById('rol-badge').innerHTML =
+      u.rol === 'supervisor'
+        ? '<span class="badge bg-warning text-dark fs-6 px-3 py-2"><i class="bi bi-person-gear me-1"></i>Supervisor</span>'
+        : '<span class="badge bg-info text-dark fs-6 px-3 py-2"><i class="bi bi-truck me-1"></i>Conductor</span>';
+    limpiarValidaciones('form-perfil');
+  }
+
+  cargarDatosPerfil();
+
+  document.getElementById('pwdNueva').addEventListener('input', function() {
+    actualizarFuerzaPassword(this.value, 'strength-bar', 'strength-text');
+  });
+
+  document.getElementById('form-perfil').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const nombre = document.getElementById('nombre').value.trim();
+    const rut = document.getElementById('rut').value.trim();
+    const telefono = document.getElementById('telefono').value.trim();
+    const email = document.getElementById('email').value.trim();
+
+    let valido = true;
+    valido = mostrarError('nombre', Validar.requerido(nombre, 'Nombre')) && valido;
+    valido = mostrarError('rut', Validar.rut(rut)) && valido;
+    valido = mostrarError('telefono', Validar.telefono(telefono)) && valido;
+    valido = mostrarError('email', Validar.email(email)) && valido;
+    if (!valido) return;
+
+    const usuarios = getUsuarios();
+    const duplicado = usuarios.find(u => u.email === email && u.id !== session.id);
+    if (duplicado) { mostrarAlerta('alerta-perfil', 'Ese correo ya está en uso.', 'danger'); return; }
+
+    const u = getUsuarioById(session.id);
+    Object.assign(u, { nombre, rut, telefono, email });
+    saveUsuario(u);
+
+    // Actualiza nombre en sesión
+    const s = getSession();
+    s.nombre = nombre;
+    localStorage.setItem('scf_session', JSON.stringify(s));
+    renderNavbar();
+
+    mostrarAlerta('alerta-perfil', 'Perfil actualizado correctamente.', 'success');
+  });
+
+  document.getElementById('form-pwd').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const actual = document.getElementById('pwdActual').value;
+    const nueva = document.getElementById('pwdNueva').value;
+    const confirm = document.getElementById('pwdConfirm').value;
+
+    const u = getUsuarioById(session.id);
+    let valido = true;
+    valido = mostrarError('pwdActual', u.password !== actual ? ['Contraseña actual incorrecta'] : []) && valido;
+    valido = mostrarError('pwdNueva', Validar.password(nueva)) && valido;
+    valido = mostrarError('pwdConfirm', nueva !== confirm ? ['Las contraseñas no coinciden'] : []) && valido;
+    if (!valido) return;
+
+    u.password = nueva;
+    saveUsuario(u);
+    mostrarAlerta('alerta-pwd', 'Contraseña actualizada correctamente.', 'success');
+    document.getElementById('form-pwd').reset();
+    document.getElementById('strength-bar').style.width = '0%';
+    document.getElementById('strength-text').textContent = '';
+    limpiarValidaciones('form-pwd');
+  });
+</script>
+</body>
+</html>

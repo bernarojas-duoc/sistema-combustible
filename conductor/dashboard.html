@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inicio — Conductor — SCF Nortrans</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="../css/styles.css" rel="stylesheet">
+</head>
+<body>
+<div id="navbar"></div>
+
+<div class="container content-area py-4">
+  <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h2 class="mb-0">Bienvenido, <span id="nombre-conductor"></span></h2>
+      <small class="text-muted">Resumen de tus cargas de combustible</small>
+    </div>
+    <a href="nueva-carga.html" class="btn btn-warning">
+      <i class="bi bi-plus-circle me-2"></i>Registrar carga
+    </a>
+  </div>
+
+  <!-- KPIs -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="kpi-card d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-value" id="kpi-total-cargas">0</div>
+          <div class="kpi-label">Cargas totales</div>
+        </div>
+        <i class="bi bi-fuel-pump kpi-icon text-warning"></i>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-value" id="kpi-litros-mes">0</div>
+          <div class="kpi-label">Litros este mes</div>
+        </div>
+        <i class="bi bi-droplet-half kpi-icon text-info"></i>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-value" id="kpi-km-litro">-</div>
+          <div class="kpi-label">Km/L promedio</div>
+        </div>
+        <i class="bi bi-speedometer kpi-icon text-success"></i>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-value" id="kpi-pendientes">0</div>
+          <div class="kpi-label">Pendientes</div>
+        </div>
+        <i class="bi bi-hourglass-split kpi-icon text-secondary"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Últimas 5 cargas -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-clock-history me-2"></i>Últimas cargas</span>
+      <a href="historial.html" class="btn btn-sm btn-outline-warning">Ver todo</a>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Bus</th>
+              <th>Litros</th>
+              <th>Odómetro</th>
+              <th>Km/L</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-cargas"></tbody>
+        </table>
+      </div>
+      <div id="sin-cargas" class="text-center text-muted py-4 d-none">
+        <i class="bi bi-inbox fs-2 d-block mb-2"></i>No tienes cargas registradas aún.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+  initData();
+  const session = requireAuth('conductor');
+  renderNavbar();
+  marcarNavActivo();
+
+  document.getElementById('nombre-conductor').textContent = session.nombre.split(' ')[0];
+
+  const hoy = new Date();
+  const mesActual = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0');
+
+  const misCargas = getCargas()
+    .filter(c => c.conductorId === session.id)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+  const cargasMes = misCargas.filter(c => c.fecha.startsWith(mesActual));
+  const litrosMes = cargasMes.reduce((s, c) => s + c.litros, 0);
+  const pendientes = misCargas.filter(c => c.estado === 'pendiente').length;
+
+  const consumos = misCargas.map(c => parseFloat(calcularConsumo(c))).filter(n => n && !isNaN(n));
+  const kmLitroPromedio = consumos.length > 0
+    ? (consumos.reduce((a, b) => a + b, 0) / consumos.length).toFixed(2)
+    : '-';
+
+  document.getElementById('kpi-total-cargas').textContent = misCargas.length;
+  document.getElementById('kpi-litros-mes').textContent = formatearNumero(litrosMes);
+  document.getElementById('kpi-km-litro').textContent = kmLitroPromedio;
+  document.getElementById('kpi-pendientes').textContent = pendientes;
+
+  const ultimas = misCargas.slice(0, 5);
+  const tbody = document.getElementById('tabla-cargas');
+
+  if (ultimas.length === 0) {
+    document.getElementById('sin-cargas').classList.remove('d-none');
+  } else {
+    ultimas.forEach(c => {
+      const km = calcularConsumo(c);
+      tbody.innerHTML += `
+        <tr>
+          <td>${formatearFecha(c.fecha)}</td>
+          <td><span class="badge bg-secondary">${nombreBus(c.busId).split('—')[0].trim()}</span></td>
+          <td><strong>${c.litros} L</strong></td>
+          <td>${formatearNumero(c.odometro)} km</td>
+          <td>${km ? km + ' km/L' : '-'}</td>
+          <td>${estadoBadge(c.estado)}</td>
+        </tr>`;
+    });
+  }
+</script>
+</body>
+</html>

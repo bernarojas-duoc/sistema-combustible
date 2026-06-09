@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historial General — SCF Nortrans</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="../css/styles.css" rel="stylesheet">
+</head>
+<body>
+<div id="navbar"></div>
+
+<div class="container content-area py-4">
+  <div class="page-header">
+    <h2><i class="bi bi-list-ul me-2"></i>Historial General de Cargas</h2>
+    <small class="text-muted">Todos los registros de abastecimiento de la flota</small>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <div class="row g-2 align-items-end">
+        <div class="col-sm-6 col-md-2">
+          <label class="form-label small">Desde</label>
+          <input type="date" class="form-control form-control-sm" id="filtro-desde">
+        </div>
+        <div class="col-sm-6 col-md-2">
+          <label class="form-label small">Hasta</label>
+          <input type="date" class="form-control form-control-sm" id="filtro-hasta">
+        </div>
+        <div class="col-sm-6 col-md-2">
+          <label class="form-label small">Conductor</label>
+          <select class="form-select form-select-sm" id="filtro-conductor">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="col-sm-6 col-md-2">
+          <label class="form-label small">Bus</label>
+          <select class="form-select form-select-sm" id="filtro-bus">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="col-sm-6 col-md-2">
+          <label class="form-label small">Estado</label>
+          <select class="form-select form-select-sm" id="filtro-estado">
+            <option value="">Todos</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="aprobado">Aprobado</option>
+            <option value="alerta">Alerta</option>
+            <option value="rechazado">Rechazado</option>
+          </select>
+        </div>
+        <div class="col-sm-6 col-md-2 d-flex gap-1">
+          <button class="btn btn-warning btn-sm flex-grow-1" onclick="aplicarFiltros()">
+            <i class="bi bi-funnel me-1"></i>Filtrar
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="limpiarFiltros()">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Fecha</th>
+              <th>Conductor</th>
+              <th>Bus</th>
+              <th>Litros</th>
+              <th>Odómetro</th>
+              <th>Km/L</th>
+              <th>Grifo</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-historial"></tbody>
+        </table>
+      </div>
+      <div id="sin-resultados" class="text-center text-muted py-5 d-none">
+        <i class="bi bi-inbox fs-2 d-block mb-2"></i>Sin resultados para los filtros aplicados.
+      </div>
+    </div>
+    <div class="card-footer d-flex justify-content-between text-muted small">
+      <span id="resumen-count">— registros</span>
+      <span id="resumen-litros"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Modal aprobar/rechazar -->
+<div class="modal fade" id="modalAccion" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content bg-dark border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title" id="modal-titulo">Revisar carga</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-success" id="btn-aprobar">
+          <i class="bi bi-check-circle me-1"></i>Aprobar
+        </button>
+        <button type="button" class="btn btn-danger" id="btn-rechazar">
+          <i class="bi bi-x-circle me-1"></i>Rechazar
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+  initData();
+  requireAuth('supervisor');
+  renderNavbar();
+  marcarNavActivo();
+
+  // Llenar filtros
+  getUsuarios().filter(u => u.rol === 'conductor').forEach(u => {
+    document.getElementById('filtro-conductor').innerHTML +=
+      `<option value="${u.id}">${u.nombre}</option>`;
+  });
+  getBuses().forEach(b => {
+    document.getElementById('filtro-bus').innerHTML +=
+      `<option value="${b.id}">${b.patente}</option>`;
+  });
+
+  let todasCargas = getCargas().sort((a, b) => b.fecha.localeCompare(a.fecha));
+  let modal, cargaSeleccionada;
+
+  function renderTabla(cargas) {
+    const tbody = document.getElementById('tabla-historial');
+    tbody.innerHTML = '';
+    document.getElementById('sin-resultados').classList.toggle('d-none', cargas.length > 0);
+
+    const totalLitros = cargas.reduce((s, c) => s + c.litros, 0);
+    document.getElementById('resumen-count').textContent = `${cargas.length} registro${cargas.length !== 1 ? 's' : ''}`;
+    document.getElementById('resumen-litros').textContent = cargas.length ? `Total: ${formatearNumero(totalLitros)} L` : '';
+
+    cargas.forEach(c => {
+      const kml = calcularConsumo(c);
+      const kmlHtml = kml ? `<span class="${esAlerta(c) ? 'text-danger' : 'text-success'}">${kml}</span>` : '-';
+      const acciones = (c.estado === 'pendiente' || c.estado === 'alerta')
+        ? `<button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="abrirModal(${c.id})"><i class="bi bi-pencil-square"></i></button>`
+        : `<span class="text-muted small">—</span>`;
+      tbody.innerHTML += `
+        <tr>
+          <td class="text-muted small">#${c.id}</td>
+          <td>${formatearFecha(c.fecha)}</td>
+          <td><small>${nombreConductor(c.conductorId)}</small></td>
+          <td><span class="badge bg-secondary">${nombreBus(c.busId).split('—')[0].trim()}</span></td>
+          <td><strong>${c.litros} L</strong></td>
+          <td>${formatearNumero(c.odometro)} km</td>
+          <td>${kmlHtml}</td>
+          <td><small class="text-muted">${c.grifo}</small></td>
+          <td>${estadoBadge(c.estado)}</td>
+          <td>${acciones}</td>
+        </tr>`;
+    });
+  }
+
+  function aplicarFiltros() {
+    todasCargas = getCargas().sort((a, b) => b.fecha.localeCompare(a.fecha));
+    let f = todasCargas;
+    const desde = document.getElementById('filtro-desde').value;
+    const hasta = document.getElementById('filtro-hasta').value;
+    const conductor = document.getElementById('filtro-conductor').value;
+    const bus = document.getElementById('filtro-bus').value;
+    const estado = document.getElementById('filtro-estado').value;
+    if (desde) f = f.filter(c => c.fecha >= desde);
+    if (hasta) f = f.filter(c => c.fecha <= hasta);
+    if (conductor) f = f.filter(c => c.conductorId === parseInt(conductor));
+    if (bus) f = f.filter(c => c.busId === parseInt(bus));
+    if (estado) f = f.filter(c => c.estado === estado);
+    renderTabla(f);
+  }
+
+  function limpiarFiltros() {
+    ['filtro-desde','filtro-hasta','filtro-conductor','filtro-bus','filtro-estado']
+      .forEach(id => document.getElementById(id).value = '');
+    todasCargas = getCargas().sort((a, b) => b.fecha.localeCompare(a.fecha));
+    renderTabla(todasCargas);
+  }
+
+  function abrirModal(id) {
+    cargaSeleccionada = getCargaById(id);
+    const c = cargaSeleccionada;
+    const kml = calcularConsumo(c);
+    document.getElementById('modal-titulo').textContent = `Carga #${c.id} — ${formatearFecha(c.fecha)}`;
+    document.getElementById('modal-body').innerHTML = `
+      <div class="row g-2 text-sm">
+        <div class="col-6"><span class="text-muted">Conductor:</span><br><strong>${nombreConductor(c.conductorId)}</strong></div>
+        <div class="col-6"><span class="text-muted">Bus:</span><br><strong>${nombreBus(c.busId)}</strong></div>
+        <div class="col-6"><span class="text-muted">Litros:</span><br><strong>${c.litros} L</strong></div>
+        <div class="col-6"><span class="text-muted">Km/L:</span><br><strong class="${esAlerta(c) ? 'text-danger' : 'text-success'}">${kml || '-'}</strong></div>
+        <div class="col-6"><span class="text-muted">Odómetro:</span><br>${formatearNumero(c.odometro)} km</div>
+        <div class="col-6"><span class="text-muted">Grifo:</span><br>${c.grifo}</div>
+        ${c.observaciones ? `<div class="col-12"><span class="text-muted">Obs:</span><br>${c.observaciones}</div>` : ''}
+      </div>
+      <div class="mt-3">${estadoBadge(c.estado)}</div>`;
+    modal = new bootstrap.Modal(document.getElementById('modalAccion'));
+    modal.show();
+  }
+
+  document.getElementById('btn-aprobar').addEventListener('click', () => {
+    cargaSeleccionada.estado = 'aprobado';
+    saveCarga(cargaSeleccionada);
+    modal.hide();
+    todasCargas = getCargas().sort((a, b) => b.fecha.localeCompare(a.fecha));
+    renderTabla(todasCargas);
+  });
+
+  document.getElementById('btn-rechazar').addEventListener('click', () => {
+    cargaSeleccionada.estado = 'rechazado';
+    saveCarga(cargaSeleccionada);
+    modal.hide();
+    todasCargas = getCargas().sort((a, b) => b.fecha.localeCompare(a.fecha));
+    renderTabla(todasCargas);
+  });
+
+  renderTabla(todasCargas);
+</script>
+</body>
+</html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Conductores — SCF Nortrans</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="../css/styles.css" rel="stylesheet">
+</head>
+<body>
+<div id="navbar"></div>
+
+<div class="container content-area py-4">
+  <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h2 class="mb-0"><i class="bi bi-people me-2"></i>Gestión de Conductores</h2>
+      <small class="text-muted">Administra los usuarios con rol conductor</small>
+    </div>
+    <button class="btn btn-warning" onclick="abrirModal()">
+      <i class="bi bi-person-plus me-2"></i>Agregar conductor
+    </button>
+  </div>
+
+  <div id="alerta-conductores"></div>
+
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>RUT</th>
+              <th>Correo</th>
+              <th>Teléfono</th>
+              <th>Cargas</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-conductores"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal agregar/editar conductor -->
+<div class="modal fade" id="modalConductor" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content bg-dark border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title" id="modal-titulo">Agregar conductor</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="alerta-modal"></div>
+        <form id="form-conductor" novalidate>
+          <input type="hidden" id="conductor-id">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="nombre" class="form-label">Nombre completo</label>
+              <input type="text" class="form-control" id="nombre" placeholder="Pedro Ramírez">
+              <div class="invalid-feedback" id="nombre-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label for="rut" class="form-label">RUT</label>
+              <input type="text" class="form-control" id="rut" placeholder="15.678.901-2">
+              <div class="invalid-feedback" id="rut-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label for="email" class="form-label">Correo electrónico</label>
+              <input type="email" class="form-control" id="email" placeholder="conductor@nortrans.cl">
+              <div class="invalid-feedback" id="email-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label for="telefono" class="form-label">Teléfono</label>
+              <input type="text" class="form-control" id="telefono" placeholder="+56 9 1234 5678">
+              <div class="invalid-feedback" id="telefono-feedback"></div>
+            </div>
+            <div class="col-md-6" id="campo-password">
+              <label for="password" class="form-label">Contraseña</label>
+              <input type="password" class="form-control" id="password" placeholder="••••••••">
+              <div class="invalid-feedback" id="password-feedback"></div>
+              <div class="mt-1">
+                <div class="progress strength-bar"><div class="progress-bar bg-secondary" id="strength-bar" style="width:0%"></div></div>
+                <small class="text-muted" id="strength-text"></small>
+              </div>
+            </div>
+            <div class="col-md-6" id="campo-activo-wrap">
+              <label class="form-label d-block">Estado</label>
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="activo" checked>
+                <label class="form-check-label" for="activo">Conductor activo</label>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-warning" onclick="guardarConductor()">
+          <i class="bi bi-save me-1"></i>Guardar
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal ver detalle conductor -->
+<div class="modal fade" id="modalDetalle" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content bg-dark border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title" id="detalle-titulo">Detalle conductor</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="detalle-body"></div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/validaciones.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+  initData();
+  const session = requireAuth('supervisor');
+  renderNavbar();
+  marcarNavActivo();
+
+  let modal, modalDetalle;
+  let esEdicion = false;
+
+  function renderTabla() {
+    const conductores = getUsuarios().filter(u => u.rol === 'conductor');
+    const cargas = getCargas();
+    const tbody = document.getElementById('tabla-conductores');
+    tbody.innerHTML = '';
+
+    if (conductores.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No hay conductores registrados.</td></tr>';
+      return;
+    }
+
+    conductores.forEach(u => {
+      const totalCargas = cargas.filter(c => c.conductorId === u.id).length;
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${u.nombre}</strong></td>
+          <td><small class="text-muted">${u.rut || '—'}</small></td>
+          <td><small>${u.email}</small></td>
+          <td><small>${u.telefono || '—'}</small></td>
+          <td><span class="badge bg-secondary">${totalCargas}</span></td>
+          <td>${u.activo
+            ? '<span class="badge bg-success">Activo</span>'
+            : '<span class="badge bg-dark">Inactivo</span>'}</td>
+          <td class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-info py-0 px-2" onclick="verDetalle(${u.id})" title="Ver detalle">
+              <i class="bi bi-eye"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="abrirModal(${u.id})" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="eliminarConductor(${u.id})" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>`;
+    });
+  }
+
+  function abrirModal(id = null) {
+    document.getElementById('form-conductor').reset();
+    document.getElementById('alerta-modal').innerHTML = '';
+    limpiarValidaciones('form-conductor');
+    esEdicion = !!id;
+
+    // Mostrar/ocultar campo contraseña en edición
+    document.getElementById('campo-password').style.display = esEdicion ? 'none' : '';
+
+    if (id) {
+      const u = getUsuarioById(id);
+      document.getElementById('modal-titulo').textContent = 'Editar conductor';
+      document.getElementById('conductor-id').value = u.id;
+      document.getElementById('nombre').value = u.nombre;
+      document.getElementById('rut').value = u.rut || '';
+      document.getElementById('email').value = u.email;
+      document.getElementById('telefono').value = u.telefono || '';
+      document.getElementById('activo').checked = u.activo;
+    } else {
+      document.getElementById('modal-titulo').textContent = 'Agregar conductor';
+      document.getElementById('conductor-id').value = '';
+      document.getElementById('activo').checked = true;
+    }
+
+    modal = new bootstrap.Modal(document.getElementById('modalConductor'));
+    modal.show();
+  }
+
+  document.getElementById('password').addEventListener('input', function() {
+    actualizarFuerzaPassword(this.value, 'strength-bar', 'strength-text');
+  });
+
+  function guardarConductor() {
+    const nombre = document.getElementById('nombre').value.trim();
+    const rut = document.getElementById('rut').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const telefono = document.getElementById('telefono').value.trim();
+    const password = document.getElementById('password').value;
+    const activo = document.getElementById('activo').checked;
+    const id = document.getElementById('conductor-id').value;
+
+    let valido = true;
+    valido = mostrarError('nombre', Validar.requerido(nombre, 'Nombre')) && valido;
+    valido = mostrarError('rut', Validar.rut(rut)) && valido;
+    valido = mostrarError('email', Validar.email(email)) && valido;
+    valido = mostrarError('telefono', Validar.telefono(telefono)) && valido;
+    if (!esEdicion) valido = mostrarError('password', Validar.password(password)) && valido;
+    if (!valido) return;
+
+    const usuarios = getUsuarios();
+    const duplicado = usuarios.find(u => u.email === email && u.id !== parseInt(id));
+    if (duplicado) { mostrarAlerta('alerta-modal', 'Ya existe un usuario con ese correo.', 'danger'); return; }
+
+    if (esEdicion) {
+      const u = getUsuarioById(parseInt(id));
+      Object.assign(u, { nombre, rut, email, telefono, activo });
+      saveUsuario(u);
+    } else {
+      saveUsuario({ nombre, rut, email, telefono, password, rol: 'conductor', activo });
+    }
+
+    modal.hide();
+    mostrarAlerta('alerta-conductores', `Conductor <strong>${nombre}</strong> guardado correctamente.`, 'success');
+    renderTabla();
+  }
+
+  function eliminarConductor(id) {
+    if (id === session.id) { mostrarAlerta('alerta-conductores', 'No puedes eliminarte a ti mismo.', 'warning'); return; }
+    const u = getUsuarioById(id);
+    const cargas = getCargas().filter(c => c.conductorId === id);
+    if (cargas.length > 0) {
+      mostrarAlerta('alerta-conductores', `No se puede eliminar: <strong>${u.nombre}</strong> tiene ${cargas.length} carga(s) registrada(s).`, 'warning');
+      return;
+    }
+    confirmar(`¿Eliminar al conductor ${u.nombre}?`, () => {
+      deleteUsuario(id);
+      mostrarAlerta('alerta-conductores', `Conductor <strong>${u.nombre}</strong> eliminado.`, 'success');
+      renderTabla();
+    });
+  }
+
+  function verDetalle(id) {
+    const u = getUsuarioById(id);
+    const cargas = getCargas().filter(c => c.conductorId === id);
+    const litros = cargas.reduce((s, c) => s + c.litros, 0);
+    const alertas = cargas.filter(c => c.estado === 'alerta').length;
+
+    document.getElementById('detalle-titulo').textContent = u.nombre;
+    document.getElementById('detalle-body').innerHTML = `
+      <div class="row g-3">
+        <div class="col-6"><span class="text-muted small">RUT</span><br><strong>${u.rut || '—'}</strong></div>
+        <div class="col-6"><span class="text-muted small">Teléfono</span><br><strong>${u.telefono || '—'}</strong></div>
+        <div class="col-12"><span class="text-muted small">Correo</span><br><strong>${u.email}</strong></div>
+        <div class="col-4 text-center">
+          <div class="kpi-value text-warning">${cargas.length}</div>
+          <div class="kpi-label">Cargas</div>
+        </div>
+        <div class="col-4 text-center">
+          <div class="kpi-value text-info">${formatearNumero(litros)}</div>
+          <div class="kpi-label">Litros total</div>
+        </div>
+        <div class="col-4 text-center">
+          <div class="kpi-value text-danger">${alertas}</div>
+          <div class="kpi-label">Alertas</div>
+        </div>
+      </div>`;
+
+    modalDetalle = new bootstrap.Modal(document.getElementById('modalDetalle'));
+    modalDetalle.show();
+  }
+
+  renderTabla();
+</script>
+</body>
+</html>

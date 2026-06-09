@@ -1,0 +1,124 @@
+/* ============================================
+   SCF Nortrans — Sistema de Carga de Combustible
+   ============================================ */
+
+:root {
+  --color-primary: #f59e0b;   /* Amarillo minero */
+  --color-dark: #111827;
+  --color-card: #1f2937;
+  --color-border: #374151;
+  --color-text: #f9fafb;
+  --color-muted: #9ca3af;
+}
+
+body {
+  background-color: var(--color-dark);
+  color: var(--color-text);
+  font-family: 'Segoe UI', sans-serif;
+  min-height: 100vh;
+}
+
+/* Navbar */
+.navbar-brand { letter-spacing: 1px; }
+.navbar { box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+
+/* Cards */
+.card {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+.card-header {
+  background-color: rgba(245,158,11,0.1);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+}
+
+/* KPI Cards */
+.kpi-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.kpi-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+.kpi-value { font-size: 2rem; font-weight: 700; color: var(--color-primary); }
+.kpi-label { font-size: 0.82rem; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi-icon { font-size: 2.2rem; opacity: 0.4; }
+
+/* Tablas */
+.table-dark { --bs-table-bg: var(--color-card); }
+.table thead th { color: var(--color-primary); border-color: var(--color-border); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px; }
+.table td, .table th { border-color: var(--color-border); vertical-align: middle; }
+.table tbody tr:hover { background-color: rgba(245,158,11,0.05); }
+
+/* Formularios */
+.form-control, .form-select {
+  background-color: #111827;
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.form-control:focus, .form-select:focus {
+  background-color: #111827;
+  border-color: var(--color-primary);
+  color: var(--color-text);
+  box-shadow: 0 0 0 0.2rem rgba(245,158,11,0.25);
+}
+.form-control::placeholder { color: var(--color-muted); }
+.form-label { color: var(--color-muted); font-size: 0.88rem; font-weight: 500; }
+
+/* Inputs en dark select options */
+.form-select option { background-color: #1f2937; color: var(--color-text); }
+
+/* Botones */
+.btn-warning { color: #111; font-weight: 600; }
+.btn-outline-warning:hover { color: #111; }
+
+/* Auth pages (login, register, recover) */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 60% 40%, #1c2a3a 0%, #111827 70%);
+  padding: 1rem;
+}
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.auth-logo { font-size: 2.5rem; color: var(--color-primary); }
+.auth-title { font-size: 1.5rem; font-weight: 700; }
+.auth-subtitle { color: var(--color-muted); font-size: 0.88rem; }
+
+/* Badges inline */
+.badge { font-size: 0.75rem; }
+
+/* Page header */
+.page-header {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+.page-header h2 { font-weight: 700; color: var(--color-primary); }
+
+/* Progress bar fuerza password */
+.strength-bar { height: 6px; border-radius: 4px; }
+
+/* Alert custom */
+.alert { border-radius: 10px; }
+
+/* Sidebar (solo desktop) */
+@media (min-width: 992px) {
+  .content-area { padding: 2rem; }
+}
+@media (max-width: 575px) {
+  .auth-card { padding: 1.5rem 1rem; }
+  .kpi-value { font-size: 1.5rem; }
+}

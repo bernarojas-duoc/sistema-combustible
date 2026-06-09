@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recuperar Contraseña — SCF Nortrans</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="text-center mb-4">
+      <div class="auth-logo"><i class="bi bi-shield-lock-fill"></i></div>
+      <h1 class="auth-title mt-2">Recuperar contraseña</h1>
+      <p class="auth-subtitle">Ingresa tu correo y te enviaremos instrucciones</p>
+    </div>
+
+    <div id="alerta-recover"></div>
+
+    <!-- Paso 1: ingresar email -->
+    <div id="paso1">
+      <form id="form-email" novalidate>
+        <div class="mb-3">
+          <label for="email" class="form-label">Correo electrónico</label>
+          <div class="input-group">
+            <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-envelope"></i></span>
+            <input type="email" class="form-control" id="email" placeholder="correo@nortrans.cl">
+          </div>
+          <div class="invalid-feedback" id="email-feedback"></div>
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-warning btn-lg">
+            <i class="bi bi-send me-2"></i>Enviar instrucciones
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Paso 2: ingresar código (simulado) -->
+    <div id="paso2" class="d-none">
+      <div class="alert alert-info">
+        <i class="bi bi-envelope-check me-2"></i>
+        Hemos enviado un código a tu correo. Ingresa el código <strong>1234</strong> para continuar.
+      </div>
+      <form id="form-codigo" novalidate>
+        <div class="mb-3">
+          <label for="codigo" class="form-label">Código de verificación</label>
+          <input type="text" class="form-control text-center fs-4 letter-spacing-wide" id="codigo" placeholder="----" maxlength="4">
+          <div class="invalid-feedback" id="codigo-feedback"></div>
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-warning btn-lg">Verificar código</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Paso 3: nueva contraseña -->
+    <div id="paso3" class="d-none">
+      <form id="form-nueva-pwd" novalidate>
+        <div class="mb-3">
+          <label for="newPassword" class="form-label">Nueva contraseña</label>
+          <div class="input-group">
+            <input type="password" class="form-control" id="newPassword" placeholder="••••••••">
+            <button class="btn btn-outline-secondary" type="button" id="togglePwd">
+              <i class="bi bi-eye" id="eyeIcon"></i>
+            </button>
+          </div>
+          <div class="invalid-feedback" id="newPassword-feedback"></div>
+          <div class="mt-2">
+            <div class="progress strength-bar">
+              <div class="progress-bar bg-secondary" id="strength-bar" role="progressbar" style="width:0%"></div>
+            </div>
+            <small class="text-muted" id="strength-text"></small>
+          </div>
+          <ul class="mt-2 ps-3 small text-muted">
+            <li>Mínimo 8 caracteres</li>
+            <li>Máximo 20 caracteres</li>
+            <li>Al menos un número</li>
+            <li>Al menos un carácter especial (!@#$%...)</li>
+          </ul>
+        </div>
+        <div class="mb-3">
+          <label for="confirmPassword" class="form-label">Confirmar contraseña</label>
+          <input type="password" class="form-control" id="confirmPassword" placeholder="••••••••">
+          <div class="invalid-feedback" id="confirmPassword-feedback"></div>
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-success btn-lg">
+            <i class="bi bi-check-circle me-2"></i>Cambiar contraseña
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <hr class="border-secondary my-3">
+    <p class="text-center small mb-0">
+      <a href="login.html" class="text-warning text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Volver al login</a>
+    </p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/validaciones.js"></script>
+<script>
+  initData();
+  let emailRecuperar = '';
+
+  document.getElementById('form-email').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    if (!mostrarError('email', Validar.email(email))) return;
+
+    const usuarios = getUsuarios();
+    const usuario = usuarios.find(u => u.email === email);
+    if (!usuario) {
+      mostrarAlerta('alerta-recover', 'No existe cuenta con ese correo.', 'danger');
+      return;
+    }
+    emailRecuperar = email;
+    document.getElementById('paso1').classList.add('d-none');
+    document.getElementById('paso2').classList.remove('d-none');
+  });
+
+  document.getElementById('form-codigo').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const codigo = document.getElementById('codigo').value.trim();
+    if (codigo !== '1234') {
+      mostrarError('codigo', ['Código incorrecto. Usa el código 1234']);
+      return;
+    }
+    document.getElementById('paso2').classList.add('d-none');
+    document.getElementById('paso3').classList.remove('d-none');
+  });
+
+  document.getElementById('togglePwd').addEventListener('click', () => {
+    const pwd = document.getElementById('newPassword');
+    const icon = document.getElementById('eyeIcon');
+    pwd.type = pwd.type === 'password' ? 'text' : 'password';
+    icon.className = pwd.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+  });
+
+  document.getElementById('newPassword').addEventListener('input', function() {
+    actualizarFuerzaPassword(this.value, 'strength-bar', 'strength-text');
+  });
+
+  document.getElementById('form-nueva-pwd').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const pwd = document.getElementById('newPassword').value;
+    const confirm = document.getElementById('confirmPassword').value;
+
+    let valido = mostrarError('newPassword', Validar.password(pwd));
+    valido = mostrarError('confirmPassword', pwd !== confirm ? ['Las contraseñas no coinciden'] : []) && valido;
+    if (!valido) return;
+
+    const usuarios = getUsuarios();
+    const usuario = usuarios.find(u => u.email === emailRecuperar);
+    if (usuario) {
+      usuario.password = pwd;
+      saveUsuario(usuario);
+    }
+    mostrarAlerta('alerta-recover', '¡Contraseña actualizada exitosamente! Redirigiendo...', 'success');
+    setTimeout(() => window.location.href = 'login.html', 2000);
+  });
+</script>
+</body>
+</html>

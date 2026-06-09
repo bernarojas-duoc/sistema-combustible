@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nueva Carga — SCF Nortrans</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="../css/styles.css" rel="stylesheet">
+</head>
+<body>
+<div id="navbar"></div>
+
+<div class="container content-area py-4">
+  <div class="page-header">
+    <h2><i class="bi bi-plus-circle me-2"></i>Registrar nueva carga</h2>
+    <small class="text-muted">Completa el formulario con los datos del abastecimiento</small>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-fuel-pump me-2"></i>Datos de la carga</div>
+        <div class="card-body">
+          <div id="alerta-carga"></div>
+          <form id="form-carga" novalidate>
+            <div class="row g-3">
+
+              <div class="col-md-6">
+                <label for="busId" class="form-label">Bus / Vehículo</label>
+                <select class="form-select" id="busId">
+                  <option value="">Selecciona un bus...</option>
+                </select>
+                <div class="invalid-feedback" id="busId-feedback"></div>
+              </div>
+
+              <div class="col-md-6">
+                <label for="fecha" class="form-label">Fecha</label>
+                <input type="date" class="form-control" id="fecha">
+                <div class="invalid-feedback" id="fecha-feedback"></div>
+              </div>
+
+              <div class="col-md-6">
+                <label for="litros" class="form-label">Litros cargados</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="litros" placeholder="0" min="1" step="0.1">
+                  <span class="input-group-text bg-dark border-secondary text-muted">L</span>
+                </div>
+                <div class="invalid-feedback" id="litros-feedback"></div>
+              </div>
+
+              <div class="col-md-6">
+                <label for="odometro" class="form-label">Odómetro actual</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="odometro" placeholder="0" min="0">
+                  <span class="input-group-text bg-dark border-secondary text-muted">km</span>
+                </div>
+                <div class="invalid-feedback" id="odometro-feedback"></div>
+              </div>
+
+              <div class="col-md-6">
+                <label for="odometroAnterior" class="form-label">Odómetro carga anterior</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="odometroAnterior" placeholder="0" min="0">
+                  <span class="input-group-text bg-dark border-secondary text-muted">km</span>
+                </div>
+                <div class="invalid-feedback" id="odometroAnterior-feedback"></div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">Km recorridos</label>
+                <div class="form-control bg-dark text-warning fw-bold" id="km-calculados">— km</div>
+              </div>
+
+              <div class="col-12">
+                <label for="grifo" class="form-label">Punto de abastecimiento (grifo)</label>
+                <select class="form-select" id="grifo">
+                  <option value="">Selecciona un grifo...</option>
+                  <option>Grifo Principal — Calama</option>
+                  <option>Grifo Norte — Chuquicamata</option>
+                  <option>Grifo Sur — Spence</option>
+                  <option>Grifo Este — Radomiro Tomic</option>
+                  <option>Otro</option>
+                </select>
+                <div class="invalid-feedback" id="grifo-feedback"></div>
+              </div>
+
+              <div class="col-12">
+                <label for="observaciones" class="form-label">Observaciones <span class="text-muted">(opcional)</span></label>
+                <textarea class="form-control" id="observaciones" rows="2" placeholder="Ej: tanque casi vacío, falla en el indicador..."></textarea>
+              </div>
+
+            </div>
+
+            <!-- Preview consumo -->
+            <div id="preview-consumo" class="mt-3 p-3 rounded border border-secondary d-none">
+              <div class="row text-center g-2">
+                <div class="col-4">
+                  <div class="text-muted small">Km recorridos</div>
+                  <div class="fw-bold text-info" id="prev-km">—</div>
+                </div>
+                <div class="col-4">
+                  <div class="text-muted small">Km/Litro</div>
+                  <div class="fw-bold" id="prev-kml">—</div>
+                </div>
+                <div class="col-4">
+                  <div class="text-muted small">Estado estimado</div>
+                  <div id="prev-estado">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+              <button type="submit" class="btn btn-warning flex-grow-1">
+                <i class="bi bi-save me-2"></i>Registrar carga
+              </button>
+              <a href="dashboard.html" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/validaciones.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+  initData();
+  const session = requireAuth('conductor');
+  renderNavbar();
+  marcarNavActivo();
+
+  // Llenar select de buses
+  const buses = getBuses().filter(b => b.activo);
+  llenarSelect('busId', buses, 'id', 'patente');
+
+  // Fecha por defecto: hoy
+  document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+
+  // Calcular km en tiempo real
+  function actualizarPreview() {
+    const odo = parseFloat(document.getElementById('odometro').value);
+    const odoAnt = parseFloat(document.getElementById('odometroAnterior').value);
+    const litros = parseFloat(document.getElementById('litros').value);
+    const busId = document.getElementById('busId').value;
+
+    if (!isNaN(odo) && !isNaN(odoAnt) && odo > odoAnt) {
+      const km = odo - odoAnt;
+      document.getElementById('km-calculados').textContent = formatearNumero(km) + ' km';
+
+      if (!isNaN(litros) && litros > 0) {
+        const kml = (km / litros).toFixed(2);
+        document.getElementById('prev-km').textContent = formatearNumero(km) + ' km';
+        document.getElementById('prev-kml').textContent = kml + ' km/L';
+
+        let estadoHtml = '<span class="badge bg-success">Normal</span>';
+        if (busId) {
+          const bus = getBusById(parseInt(busId));
+          if (bus) {
+            const ratio = parseFloat(kml) / bus.kmLitroEsperado;
+            if (ratio < 0.7 || ratio > 1.4) estadoHtml = '<span class="badge bg-danger">Alerta</span>';
+            else if (ratio < 0.85) estadoHtml = '<span class="badge bg-warning text-dark">Bajo</span>';
+          }
+        }
+        document.getElementById('prev-estado').innerHTML = estadoHtml;
+        document.getElementById('preview-consumo').classList.remove('d-none');
+      }
+    } else {
+      document.getElementById('km-calculados').textContent = '— km';
+      document.getElementById('preview-consumo').classList.add('d-none');
+    }
+  }
+
+  ['odometro','odometroAnterior','litros','busId'].forEach(id =>
+    document.getElementById(id).addEventListener('input', actualizarPreview)
+  );
+
+  document.getElementById('form-carga').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const busId = document.getElementById('busId').value;
+    const fecha = document.getElementById('fecha').value;
+    const litros = document.getElementById('litros').value;
+    const odometro = document.getElementById('odometro').value;
+    const odometroAnterior = document.getElementById('odometroAnterior').value;
+    const grifo = document.getElementById('grifo').value;
+    const observaciones = document.getElementById('observaciones').value.trim();
+
+    let valido = true;
+    valido = mostrarError('busId', Validar.requerido(busId, 'Bus')) && valido;
+    valido = mostrarError('fecha', Validar.requerido(fecha, 'Fecha')) && valido;
+    valido = mostrarError('litros', Validar.numero(litros, 'Litros', 1, 500)) && valido;
+    valido = mostrarError('odometro', Validar.numero(odometro, 'Odómetro', 0)) && valido;
+    valido = mostrarError('grifo', Validar.requerido(grifo, 'Grifo')) && valido;
+
+    const odo = parseFloat(odometro);
+    const odoAnt = parseFloat(odometroAnterior);
+    if (!isNaN(odo) && !isNaN(odoAnt) && odo <= odoAnt) {
+      mostrarError('odometro', ['El odómetro actual debe ser mayor al anterior']);
+      valido = false;
+    }
+    valido = mostrarError('odometroAnterior', Validar.numero(odometroAnterior, 'Odómetro anterior', 0)) && valido;
+
+    if (!valido) return;
+
+    const carga = {
+      busId: parseInt(busId),
+      conductorId: session.id,
+      litros: parseFloat(litros),
+      odometro: odo,
+      odometroAnterior: odoAnt,
+      grifo,
+      fecha,
+      observaciones,
+      estado: esAlerta({ busId: parseInt(busId), litros: parseFloat(litros), odometro: odo, odometroAnterior: odoAnt }) ? 'alerta' : 'pendiente'
+    };
+
+    saveCarga(carga);
+    mostrarAlerta('alerta-carga', '¡Carga registrada exitosamente! Redirigiendo...', 'success');
+    setTimeout(() => window.location.href = 'historial.html', 1800);
+  });
+</script>
+</body>
+</html>
