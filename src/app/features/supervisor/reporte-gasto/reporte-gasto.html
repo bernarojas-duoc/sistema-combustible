@@ -1,0 +1,105 @@
+<div class="container content-area py-4">
+  <div class="page-header">
+    <h2 class="mb-0"><i class="bi bi-cash-coin me-2"></i>Reporte de gasto en combustible</h2>
+    <small class="text-muted">Cuánto gasta la empresa en combustible, por mes y por bus</small>
+  </div>
+
+  <!-- KPIs (uso de *ngIf) -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card"><div class="kpi-value">${{ gastoTotal | number:'1.0-0' }}</div><div class="kpi-label">Gasto total acumulado</div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card"><div class="kpi-value">${{ gastoMesActual | number:'1.0-0' }}</div><div class="kpi-label">Gasto mes actual</div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card"><div class="kpi-value">${{ promedioMensual | number:'1.0-0' }}</div><div class="kpi-label">Promedio mensual</div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card"><div class="kpi-value">{{ litrosTotal | number:'1.0-0' }}</div><div class="kpi-label">Litros totales</div></div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Gasto por mes -->
+    <div class="col-lg-7">
+      <div class="card h-100">
+        <div class="card-header"><i class="bi bi-calendar3 me-2"></i>Gasto por mes</div>
+        <div class="card-body p-0">
+          <div class="table-responsive" *ngIf="porMes.length; else sinDatos">
+            <table class="table table-dark mb-0">
+              <thead>
+                <tr><th>Mes</th><th>Cargas</th><th>Litros</th><th class="text-end">Gasto (CLP)</th><th style="width: 25%">Tendencia</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let m of porMes">
+                  <td class="fw-bold">{{ m.etiqueta }}</td>
+                  <td>{{ m.cargas }}</td>
+                  <td>{{ m.litros | number:'1.0-0' }} L</td>
+                  <td class="text-end text-warning fw-bold">${{ m.costo | number:'1.0-0' }}</td>
+                  <td>
+                    <div class="progress" style="height: 8px">
+                      <div class="progress-bar bg-warning" [style.width.%]="m.pct"></div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #sinDatos>
+            <div class="text-center text-muted py-4">Sin cargas registradas.</div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gasto por bus -->
+    <div class="col-lg-5">
+      <div class="card h-100">
+        <div class="card-header"><i class="bi bi-bus-front me-2"></i>Gasto por bus</div>
+        <div class="card-body p-0">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item bg-transparent border-secondary py-3 px-3" *ngFor="let b of porBus">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="fw-bold text-light">{{ b.etiqueta }}</span>
+                <span class="text-warning fw-bold">${{ b.costo | number:'1.0-0' }}</span>
+              </div>
+              <div class="d-flex justify-content-between text-muted small mb-1">
+                <span>{{ b.cargas }} cargas</span>
+                <span>{{ b.litros | number:'1.0-0' }} L</span>
+              </div>
+              <div class="progress" style="height: 6px">
+                <div class="progress-bar bg-info" [style.width.%]="b.pct"></div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráfico de barras mensual (Chart.js) con métrica seleccionable -->
+  <div class="card mt-4" *ngIf="resumenMensual.length">
+    <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+      <span><i class="bi bi-bar-chart-line me-2"></i>Evolución mensual</span>
+      <div class="btn-group btn-group-sm" role="group" aria-label="Métrica del gráfico">
+        <button type="button" class="btn" [class.btn-warning]="metrica === 'gasto'" [class.btn-outline-warning]="metrica !== 'gasto'" (click)="setMetrica('gasto')">Gasto total</button>
+        <button type="button" class="btn" [class.btn-warning]="metrica === 'costoPorKm'" [class.btn-outline-warning]="metrica !== 'costoPorKm'" (click)="setMetrica('costoPorKm')">Costo por km</button>
+        <button type="button" class="btn" [class.btn-warning]="metrica === 'litros'" [class.btn-outline-warning]="metrica !== 'litros'" (click)="setMetrica('litros')">Litros</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <app-bar-chart [labels]="chartLabels" [values]="chartValores" [prefijo]="chartPrefijo" [titulo]="chartTitulo" [resaltarMax]="metrica === 'costoPorKm'" />
+      <p class="text-muted small mb-0 mt-2" *ngIf="metrica === 'costoPorKm'">
+        <i class="bi bi-info-circle me-1"></i><strong>Costo por km</strong> = gasto del mes ÷ kilómetros recorridos. Comparable entre meses sin importar cuántos buses operaron.
+      </p>
+      <p class="text-muted small mb-0 mt-2" *ngIf="metrica === 'gasto'">
+        <i class="bi bi-info-circle me-1"></i>El <strong>gasto total</strong> sube si operan más buses. Para comparar la eficiencia entre meses, usa <strong>Costo por km</strong>.
+      </p>
+    </div>
+  </div>
+
+  <p class="text-muted small mt-3">
+    <i class="bi bi-info-circle me-1"></i>El reporte excluye las cargas rechazadas. El gasto se calcula como litros × precio por litro de cada carga.
+  </p>
+</div>

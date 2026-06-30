@@ -1,0 +1,123 @@
+<div class="container content-area py-4">
+  <div class="page-header">
+    <h2 class="text-danger mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Alertas de consumo</h2>
+    <small class="text-muted">Registros con consumo fuera del rango esperado del bus</small>
+  </div>
+
+  <!-- Resumen -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="kpi-card border-danger"><div class="kpi-value text-danger">{{ activas.length }}</div><div class="kpi-label">Alertas activas</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card"><div class="kpi-value text-warning">{{ busesInvolucrados }}</div><div class="kpi-label">Buses involucrados</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card"><div class="kpi-value text-info">{{ conductoresInvolucrados }}</div><div class="kpi-label">Conductores</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card"><div class="kpi-value text-success">{{ resueltas.length }}</div><div class="kpi-label">Resueltas</div></div>
+    </div>
+  </div>
+
+  <!-- Activas -->
+  <div class="card mb-4">
+    <div class="card-header text-danger fw-bold"><i class="bi bi-flag-fill me-2"></i>Alertas activas</div>
+    <div class="card-body p-0">
+      @if (activas.length) {
+        <div class="table-responsive">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr><th>Fecha</th><th>Conductor</th><th>Bus</th><th>Litros</th><th>Km recorridos</th><th>Km/L real</th><th>Km/L esp.</th><th>Desviación</th><th>Acción</th></tr>
+            </thead>
+            <tbody>
+              @for (c of activas; track c.id) {
+                <tr>
+                  <td>{{ c.fecha | fecha }}</td>
+                  <td><small>{{ conductor(c.conductorId) }}</small></td>
+                  <td><span class="badge bg-secondary">{{ patente(c.busId) }}</span></td>
+                  <td>{{ c.litros }} L</td>
+                  <td>{{ km(c) | number:'1.0-0' }} km</td>
+                  <td class="text-danger fw-bold">{{ consumo(c) ?? '-' }}</td>
+                  <td>{{ kmEsperado(c.busId) }}</td>
+                  <td>
+                    @if (desviacion(c); as d) {
+                      <span class="fw-bold" [class.text-danger]="d < 0" [class.text-warning]="d >= 0">{{ d > 0 ? '+' : '' }}{{ d }}%</span>
+                    } @else { - }
+                  </td>
+                  <td class="d-flex gap-1">
+                    <button class="btn btn-sm btn-success py-0 px-2" (click)="aprobar(c)" title="Aprobar"><i class="bi bi-check"></i></button>
+                    <button class="btn btn-sm btn-danger py-0 px-2" (click)="abrirRechazo(c)" title="Rechazar"><i class="bi bi-x"></i></button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="text-center py-4">
+          <i class="bi bi-check-circle-fill text-success fs-2 d-block mb-2"></i>
+          <span class="text-success">Sin alertas activas. ¡Flota operando correctamente!</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Resueltas -->
+  <div class="card">
+    <div class="card-header text-muted"><i class="bi bi-archive me-2"></i>Alertas resueltas</div>
+    <div class="card-body p-0">
+      @if (resueltas.length) {
+        <div class="table-responsive">
+          <table class="table table-dark mb-0">
+            <thead>
+              <tr><th>Fecha</th><th>Conductor</th><th>Bus</th><th>Litros</th><th>Km/L real</th><th>Km/L esp.</th><th>Resolución</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (c of resueltas; track c.id) {
+                <tr>
+                  <td>{{ c.fecha | fecha }}</td>
+                  <td><small>{{ conductor(c.conductorId) }}</small></td>
+                  <td><span class="badge bg-secondary">{{ patente(c.busId) }}</span></td>
+                  <td>{{ c.litros }} L</td>
+                  <td class="text-muted">{{ consumo(c) ?? '-' }}</td>
+                  <td>{{ kmEsperado(c.busId) }}</td>
+                  <td><app-estado-badge [estado]="c.estado" [motivo]="c.motivoRechazo" /></td>
+                  <td>
+                    @if (c.estado === 'rechazado') {
+                      <button class="btn btn-sm btn-outline-warning py-0 px-2" (click)="reabrir(c)" title="Reabrir"><i class="bi bi-arrow-counterclockwise"></i></button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="text-center text-muted py-3"><small>No hay alertas resueltas aún.</small></div>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- Modal de rechazo -->
+@if (enRechazo(); as c) {
+  <div class="modal-backdrop-custom" (click)="enRechazo.set(null)"></div>
+  <div class="modal-custom card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-x-circle text-danger me-2"></i>Rechazar carga #{{ c.id }}</span>
+      <button class="btn-close btn-close-white" (click)="enRechazo.set(null)"></button>
+    </div>
+    <div class="card-body">
+      <p class="small text-muted mb-2">{{ conductor(c.conductorId) }} — {{ patente(c.busId) }} — {{ c.litros }} L</p>
+      <label for="motivo" class="form-label small text-danger">Motivo del rechazo (requerido)</label>
+      <textarea id="motivo" rows="3" class="form-control" [(ngModel)]="motivo"
+                placeholder="Ej: odómetro inconsistente, litros no coinciden con boleta..."></textarea>
+      @if (errorMotivo()) { <div class="text-danger small mt-1">{{ errorMotivo() }}</div> }
+    </div>
+    <div class="card-footer d-flex gap-2 justify-content-end">
+      <button class="btn btn-danger btn-sm" (click)="confirmarRechazo()"><i class="bi bi-x-circle me-1"></i>Confirmar rechazo</button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="enRechazo.set(null)">Cancelar</button>
+    </div>
+  </div>
+}

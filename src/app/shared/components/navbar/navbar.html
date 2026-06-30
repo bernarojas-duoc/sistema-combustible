@@ -1,0 +1,49 @@
+@if (sesion(); as s) {
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-warning">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold text-warning" [routerLink]="rutaInicio">
+        <i class="bi bi-fuel-pump-fill me-2"></i>SCF Nortrans
+      </a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navMenu"
+        aria-label="Abrir menú"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          @for (link of links; track link.ruta) {
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                [routerLink]="link.ruta"
+                routerLinkActive="active"
+              >
+                <i class="bi" [class]="link.icono"></i> {{ link.etiqueta }}
+              </a>
+            </li>
+          }
+        </ul>
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-light small">
+            {{ s.nombre }}
+            @if (s.rol === 'supervisor') {
+              <span class="badge bg-warning text-dark ms-2">Supervisor</span>
+            } @else {
+              <span class="badge bg-info text-dark ms-2">Administrativo</span>
+            }
+          </span>
+          <a routerLink="/perfil" class="btn btn-outline-warning btn-sm" title="Mi perfil">
+            <i class="bi bi-person-circle"></i>
+          </a>
+          <button (click)="logout()" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-box-arrow-right"></i> Salir
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+}

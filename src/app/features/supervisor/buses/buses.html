@@ -1,0 +1,116 @@
+<div class="container content-area py-4">
+  <div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+      <h2 class="mb-0"><i class="bi bi-bus-front me-2"></i>Buses</h2>
+      <small class="text-muted">Gestión de la flota y su plan de mantenimiento</small>
+    </div>
+    <button class="btn btn-warning" (click)="abrirNuevo()"><i class="bi bi-plus-circle me-2"></i>Agregar bus</button>
+  </div>
+
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0 align-middle">
+          <thead>
+            <tr><th>Patente</th><th>N° chasis</th><th>Modelo</th><th>Cap. tanque</th><th>Km/L esp.</th><th>Cargas</th><th>Estado</th><th>Acciones</th></tr>
+          </thead>
+          <tbody>
+            @for (b of buses; track b.id) {
+              <tr>
+                <td><span class="badge bg-secondary">{{ b.patente }}</span></td>
+                <td><small>{{ b.numeroChasis }}</small></td>
+                <td>{{ b.modelo }}</td>
+                <td>{{ b.capacidadTanque }} L</td>
+                <td>{{ b.kmLitroEsperado }}</td>
+                <td>{{ totalCargas(b.id) }}</td>
+                <td><span class="badge" [class]="b.activo ? 'bg-success' : 'bg-dark'">{{ b.activo ? 'Activo' : 'Inactivo' }}</span></td>
+                <td class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-warning py-0 px-2" (click)="abrirEdicion(b)" title="Editar"><i class="bi bi-pencil"></i></button>
+                  <button class="btn btn-sm btn-outline-danger py-0 px-2" (click)="eliminar(b)" title="Eliminar"><i class="bi bi-trash"></i></button>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="text-center text-muted py-4">No hay buses registrados.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal alta/edición -->
+@if (modalAbierto()) {
+  <div class="modal-backdrop-custom" (click)="cerrar()"></div>
+  <div class="modal-custom card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-bus-front me-2"></i>{{ editandoId() ? 'Editar bus' : 'Agregar bus' }}</span>
+      <button class="btn-close btn-close-white" (click)="cerrar()"></button>
+    </div>
+    <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+      <div class="card-body">
+        @if (error()) { <div class="alert alert-danger py-2">{{ error() }}</div> }
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <label for="patente" class="form-label">Patente</label>
+            <input id="patente" class="form-control text-uppercase" formControlName="patente"
+                   [class.is-invalid]="form.controls.patente.invalid && form.controls.patente.touched" />
+          </div>
+          <div class="col-sm-6">
+            <label for="numeroChasis" class="form-label">N° de chasis</label>
+            <input id="numeroChasis" class="form-control text-uppercase" formControlName="numeroChasis" placeholder="9BWZZZ377VT004251"
+                   [class.is-invalid]="form.controls.numeroChasis.invalid && form.controls.numeroChasis.touched" />
+            @if (form.controls.numeroChasis.invalid && form.controls.numeroChasis.touched) {
+              <div class="text-danger small mt-1">Ingresa un número de chasis válido (mínimo 6 caracteres).</div>
+            }
+          </div>
+          <div class="col-sm-6">
+            <label for="modelo" class="form-label">Modelo</label>
+            <input id="modelo" class="form-control" formControlName="modelo"
+                   [class.is-invalid]="form.controls.modelo.invalid && form.controls.modelo.touched" />
+          </div>
+          <div class="col-sm-6">
+            <label for="capacidadTanque" class="form-label">Capacidad tanque (L)</label>
+            <input id="capacidadTanque" type="number" class="form-control" formControlName="capacidadTanque"
+                   [class.is-invalid]="form.controls.capacidadTanque.invalid && form.controls.capacidadTanque.touched" />
+          </div>
+          <div class="col-sm-6">
+            <label for="kmLitroEsperado" class="form-label">Km/L esperado</label>
+            <input id="kmLitroEsperado" type="number" step="0.1" class="form-control" formControlName="kmLitroEsperado"
+                   [class.is-invalid]="form.controls.kmLitroEsperado.invalid && form.controls.kmLitroEsperado.touched" />
+          </div>
+        </div>
+
+        <hr class="border-secondary" />
+        <p class="form-label mb-2"><i class="bi bi-tools me-1"></i>Intervalos de mantenimiento (km)</p>
+        <div class="row g-3">
+          <div class="col-6 col-md-3">
+            <label for="intervaloAceite" class="form-label small">Aceite</label>
+            <input id="intervaloAceite" type="number" class="form-control" formControlName="intervaloAceite" />
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="intervaloFiltros" class="form-label small">Filtros</label>
+            <input id="intervaloFiltros" type="number" class="form-control" formControlName="intervaloFiltros" />
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="intervaloFrenos" class="form-label small">Frenos</label>
+            <input id="intervaloFrenos" type="number" class="form-control" formControlName="intervaloFrenos" />
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="intervaloNeumaticos" class="form-label small">Neumáticos</label>
+            <input id="intervaloNeumaticos" type="number" class="form-control" formControlName="intervaloNeumaticos" />
+          </div>
+        </div>
+
+        <div class="form-check mt-3">
+          <input id="activo" type="checkbox" class="form-check-input" formControlName="activo" />
+          <label for="activo" class="form-check-label">Bus activo</label>
+        </div>
+      </div>
+      <div class="card-footer d-flex gap-2 justify-content-end">
+        <button type="submit" class="btn btn-warning btn-sm"><i class="bi bi-save me-1"></i>Guardar</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cerrar()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+}

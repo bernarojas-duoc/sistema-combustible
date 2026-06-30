@@ -1,0 +1,80 @@
+<div class="container content-area py-4">
+  <div class="page-header">
+    <h2 class="mb-0"><i class="bi bi-clipboard-data me-2"></i>Hola, {{ nombre }}</h2>
+    <small class="text-muted">Panel administrativo — ingreso y mantención de datos de la flota</small>
+  </div>
+
+  <!-- KPIs -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card text-center py-3">
+        <div class="kpi-value text-info">{{ conductoresActivos }}</div>
+        <div class="kpi-label">Conductores activos</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card text-center py-3">
+        <div class="kpi-value text-warning">{{ busesActivos }}</div>
+        <div class="kpi-label">Buses activos</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card text-center py-3">
+        <div class="kpi-value">{{ cargasMes }}</div>
+        <div class="kpi-label">Cargas del mes</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card text-center py-3">
+        <div class="kpi-value text-success">{{ litrosMes | number:'1.0-0' }}</div>
+        <div class="kpi-label">Litros del mes</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accesos directos -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+      <a routerLink="/administrativo/nueva-carga" class="btn btn-warning w-100 py-3">
+        <i class="bi bi-plus-circle me-2"></i>Registrar carga
+      </a>
+    </div>
+    <div class="col-12 col-md-4">
+      <a routerLink="/administrativo/conductores" class="btn btn-outline-info w-100 py-3">
+        <i class="bi bi-people me-2"></i>Conductores
+      </a>
+    </div>
+    <div class="col-12 col-md-4">
+      <a routerLink="/administrativo/buses" class="btn btn-outline-warning w-100 py-3">
+        <i class="bi bi-bus-front me-2"></i>Buses
+      </a>
+    </div>
+  </div>
+
+  <!-- Últimas cargas -->
+  <div class="card">
+    <div class="card-header"><i class="bi bi-clock-history me-2"></i>Últimas cargas registradas</div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0 align-middle">
+          <thead>
+            <tr><th>Fecha</th><th>Conductor</th><th>Bus</th><th>Litros</th><th>Estado</th></tr>
+          </thead>
+          <tbody>
+            @for (c of recientes; track c.id) {
+              <tr>
+                <td>{{ c.fecha | fecha }}</td>
+                <td>{{ conductor(c.conductorId) }}</td>
+                <td>{{ patente(c.busId) }}</td>
+                <td>{{ c.litros | number:'1.0-0' }} L</td>
+                <td><app-estado-badge [estado]="c.estado" /></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="text-center text-muted py-4">No hay cargas registradas.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

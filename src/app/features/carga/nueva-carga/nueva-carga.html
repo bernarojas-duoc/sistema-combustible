@@ -1,0 +1,149 @@
+<div class="container content-area py-4">
+  <div class="page-header">
+    <h2><i class="bi bi-plus-circle me-2"></i>Registrar nueva carga</h2>
+    <small class="text-muted">Completa el formulario con los datos del abastecimiento</small>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-fuel-pump me-2"></i>Datos de la carga</div>
+        <div class="card-body">
+          @if (exito()) {
+            <div class="alert alert-success"><i class="bi bi-check-circle me-2"></i>¡Carga registrada exitosamente! Redirigiendo...</div>
+          }
+
+          <form [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="conductorId" class="form-label">Conductor</label>
+                <select id="conductorId" class="form-select" formControlName="conductorId"
+                        [class.is-invalid]="form.controls.conductorId.invalid && form.controls.conductorId.touched">
+                  <option value="">Selecciona un conductor...</option>
+                  @for (c of conductores; track c.id) {
+                    <option [value]="c.id">{{ c.nombre }}</option>
+                  }
+                </select>
+                @if (form.controls.conductorId.invalid && form.controls.conductorId.touched) {
+                  <div class="text-danger small mt-1">Selecciona el conductor que realizó la carga.</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label for="busId" class="form-label">Bus / Vehículo</label>
+                <select id="busId" class="form-select" formControlName="busId" (change)="onBusChange()"
+                        [class.is-invalid]="form.controls.busId.invalid && form.controls.busId.touched">
+                  <option value="">Selecciona un bus...</option>
+                  @for (b of buses; track b.id) {
+                    <option [value]="b.id">{{ b.patente }} — {{ b.modelo }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label for="fecha" class="form-label">Fecha</label>
+                <input id="fecha" type="date" class="form-control" formControlName="fecha" [max]="hoy"
+                       [class.is-invalid]="form.controls.fecha.invalid && form.controls.fecha.touched" />
+                @if (form.controls.fecha.errors?.['futura']) {
+                  <div class="text-danger small mt-1">La fecha no puede ser futura.</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label for="litros" class="form-label">Litros cargados</label>
+                <div class="input-group">
+                  <input id="litros" type="number" step="0.1" min="1" class="form-control" formControlName="litros" placeholder="0"
+                         [class.is-invalid]="form.controls.litros.invalid && form.controls.litros.touched" />
+                  <span class="input-group-text">L</span>
+                </div>
+                @if (form.controls.litros.invalid && form.controls.litros.touched) {
+                  <div class="text-danger small mt-1">Ingresa litros entre 1 y 500.</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label for="precioLitro" class="form-label">Precio por litro</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input id="precioLitro" type="number" min="1" class="form-control" formControlName="precioLitro" placeholder="980"
+                         [class.is-invalid]="form.controls.precioLitro.invalid && form.controls.precioLitro.touched" />
+                </div>
+                @if (form.controls.precioLitro.invalid && form.controls.precioLitro.touched) {
+                  <div class="text-danger small mt-1">Ingresa el precio por litro.</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label for="odometro" class="form-label">Odómetro actual</label>
+                <div class="input-group">
+                  <input id="odometro" type="number" min="0" class="form-control" formControlName="odometro" placeholder="0"
+                         [class.is-invalid]="(form.controls.odometro.invalid && form.controls.odometro.touched) || odometroNoMayor" />
+                  <span class="input-group-text">km</span>
+                </div>
+                @if (odometroNoMayor) {
+                  <div class="text-danger small mt-1">El odómetro actual debe ser mayor al de la carga anterior.</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label for="odometroAnterior" class="form-label">Odómetro carga anterior</label>
+                <div class="input-group">
+                  <input id="odometroAnterior" type="number" min="0" class="form-control" formControlName="odometroAnterior" placeholder="0"
+                         [class.is-invalid]="form.controls.odometroAnterior.invalid && form.controls.odometroAnterior.touched" />
+                  <span class="input-group-text">km</span>
+                </div>
+                @if (hint()) { <div class="form-text text-muted small"><i class="bi bi-info-circle me-1"></i>{{ hint() }}</div> }
+              </div>
+
+              <div class="col-12">
+                <label for="bencinera" class="form-label">Bencinera</label>
+                <select id="bencinera" class="form-select" formControlName="bencinera"
+                        [class.is-invalid]="form.controls.bencinera.invalid && form.controls.bencinera.touched">
+                  <option value="">Selecciona una bencinera...</option>
+                  @for (b of bencineras; track b) { <option [value]="b">{{ b }}</option> }
+                </select>
+              </div>
+
+              <div class="col-12">
+                <label for="observaciones" class="form-label">Observaciones <span class="text-muted">(opcional)</span></label>
+                <textarea id="observaciones" rows="2" class="form-control" formControlName="observaciones"
+                          placeholder="Ej: tanque casi vacío, falla en el indicador..."></textarea>
+              </div>
+            </div>
+
+            <!-- Preview en tiempo real -->
+            <div class="mt-3 p-3 rounded border border-secondary">
+              <div class="row text-center g-2">
+                <div class="col-6 col-md-3">
+                  <div class="text-muted small">Km recorridos</div>
+                  <div class="fw-bold text-info">{{ km != null ? (km | number:'1.0-0') + ' km' : '—' }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="text-muted small">Km / Litro</div>
+                  <div class="fw-bold text-light">{{ kml != null ? kml + ' km/L' : '—' }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="text-muted small">Costo total</div>
+                  <div class="fw-bold text-warning">{{ costo != null ? (costo | number:'1.0-0') + ' CLP' : '—' }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="text-muted small">Estado estimado</div>
+                  <div>
+                    @if (estadoEstimado; as e) {
+                      <span class="badge" [class]="e.clase">{{ e.texto }}</span>
+                    } @else { — }
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+              <button type="submit" class="btn btn-warning flex-grow-1"><i class="bi bi-save me-2"></i>Registrar carga</button>
+              <a [routerLink]="volverRuta" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

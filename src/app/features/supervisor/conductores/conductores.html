@@ -1,0 +1,132 @@
+<div class="container content-area py-4">
+  <div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+      <h2 class="mb-0"><i class="bi bi-people me-2"></i>Conductores</h2>
+      <small class="text-muted">Gestión de los conductores de la flota</small>
+    </div>
+    <button class="btn btn-warning" (click)="abrirNuevo()"><i class="bi bi-plus-circle me-2"></i>Agregar conductor</button>
+  </div>
+
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0 align-middle">
+          <thead>
+            <tr><th>Nombre</th><th>RUT</th><th>Teléfono</th><th>Licencia</th><th>Turno</th><th>Cargas</th><th>Estado</th><th>Acciones</th></tr>
+          </thead>
+          <tbody>
+            @for (u of conductores; track u.id) {
+              <tr>
+                <td>{{ u.nombre }}</td>
+                <td>{{ u.rut }}</td>
+                <td><small>{{ u.telefono }}</small></td>
+                <td><span class="badge bg-secondary">{{ u.licencia }}</span></td>
+                <td><small>{{ u.tipoTurno }}</small></td>
+                <td>{{ totalCargas(u.id) }}</td>
+                <td><span class="badge" [class]="u.activo ? 'bg-success' : 'bg-dark'">{{ u.activo ? 'Activo' : 'Inactivo' }}</span></td>
+                <td class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-info py-0 px-2" (click)="verDetalle(u)" title="Ver detalle"><i class="bi bi-eye"></i></button>
+                  <button class="btn btn-sm btn-outline-warning py-0 px-2" (click)="abrirEdicion(u)" title="Editar"><i class="bi bi-pencil"></i></button>
+                  <button class="btn btn-sm btn-outline-danger py-0 px-2" (click)="eliminar(u)" title="Eliminar"><i class="bi bi-trash"></i></button>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="text-center text-muted py-4">No hay conductores registrados.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal alta/edición -->
+@if (modalAbierto()) {
+  <div class="modal-backdrop-custom" (click)="cerrar()"></div>
+  <div class="modal-custom card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-person-plus me-2"></i>{{ esEdicion ? 'Editar conductor' : 'Agregar conductor' }}</span>
+      <button class="btn-close btn-close-white" (click)="cerrar()"></button>
+    </div>
+    <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+      <div class="card-body">
+        @if (error()) { <div class="alert alert-danger py-2">{{ error() }}</div> }
+        <div class="row g-3">
+          <div class="col-12">
+            <label for="nombre" class="form-label">Nombre completo</label>
+            <input id="nombre" class="form-control" formControlName="nombre"
+                   [class.is-invalid]="form.controls.nombre.invalid && form.controls.nombre.touched" />
+          </div>
+          <div class="col-sm-6">
+            <label for="rut" class="form-label">RUT</label>
+            <input id="rut" class="form-control" formControlName="rut" placeholder="12.345.678-9"
+                   [class.is-invalid]="form.controls.rut.invalid && form.controls.rut.touched" />
+            @if (form.controls.rut.errors?.['rut'] && form.controls.rut.touched) {
+              <div class="text-danger small mt-1">{{ form.controls.rut.errors?.['rut'] }}</div>
+            }
+          </div>
+          <div class="col-sm-6">
+            <label for="telefono" class="form-label">Teléfono</label>
+            <input id="telefono" class="form-control" formControlName="telefono" placeholder="+56 9 1234 5678"
+                   [class.is-invalid]="form.controls.telefono.invalid && form.controls.telefono.touched" />
+            @if (form.controls.telefono.errors?.['telefono'] && form.controls.telefono.touched) {
+              <div class="text-danger small mt-1">{{ form.controls.telefono.errors?.['telefono'] }}</div>
+            }
+          </div>
+          <div class="col-sm-6">
+            <label for="licencia" class="form-label">Licencia</label>
+            <select id="licencia" class="form-select" formControlName="licencia"
+                    [class.is-invalid]="form.controls.licencia.invalid && form.controls.licencia.touched">
+              <option value="">Selecciona...</option>
+              @for (l of licencias; track l) { <option [value]="l">Clase {{ l }}</option> }
+            </select>
+          </div>
+          <div class="col-sm-6">
+            <label for="tipoTurno" class="form-label">Tipo de turno</label>
+            <select id="tipoTurno" class="form-select" formControlName="tipoTurno"
+                    [class.is-invalid]="form.controls.tipoTurno.invalid && form.controls.tipoTurno.touched">
+              <option value="">Selecciona...</option>
+              @for (t of turnos; track t) { <option [value]="t">{{ t }}</option> }
+            </select>
+          </div>
+        </div>
+        <div class="form-check mt-3">
+          <input id="activo" type="checkbox" class="form-check-input" formControlName="activo" />
+          <label for="activo" class="form-check-label">Conductor activo</label>
+        </div>
+      </div>
+      <div class="card-footer d-flex gap-2 justify-content-end">
+        <button type="submit" class="btn btn-warning btn-sm"><i class="bi bi-save me-1"></i>Guardar</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cerrar()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+}
+
+<!-- Modal detalle -->
+@if (detalle(); as u) {
+  <div class="modal-backdrop-custom" (click)="detalle.set(null)"></div>
+  <div class="modal-custom card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-person-vcard me-2"></i>{{ u.nombre }}</span>
+      <button class="btn-close btn-close-white" (click)="detalle.set(null)"></button>
+    </div>
+    <div class="card-body">
+      <dl class="row small mb-3">
+        <dt class="col-4 text-muted">RUT</dt><dd class="col-8">{{ u.rut }}</dd>
+        <dt class="col-4 text-muted">Teléfono</dt><dd class="col-8">{{ u.telefono }}</dd>
+        <dt class="col-4 text-muted">Licencia</dt><dd class="col-8">Clase {{ u.licencia }}</dd>
+        <dt class="col-4 text-muted">Turno</dt><dd class="col-8">{{ u.tipoTurno }}</dd>
+        <dt class="col-4 text-muted">Estado</dt><dd class="col-8">{{ u.activo ? 'Activo' : 'Inactivo' }}</dd>
+      </dl>
+      <div class="row g-2 text-center">
+        <div class="col-4"><div class="kpi-card py-2"><div class="kpi-value text-warning">{{ totalCargas(u.id) }}</div><div class="kpi-label">Cargas</div></div></div>
+        <div class="col-4"><div class="kpi-card py-2"><div class="kpi-value text-info">{{ totalLitros(u.id) | number:'1.0-0' }}</div><div class="kpi-label">Litros</div></div></div>
+        <div class="col-4"><div class="kpi-card py-2"><div class="kpi-value text-danger">{{ totalAlertas(u.id) }}</div><div class="kpi-label">Alertas</div></div></div>
+      </div>
+    </div>
+    <div class="card-footer d-flex justify-content-end">
+      <button class="btn btn-outline-secondary btn-sm" (click)="detalle.set(null)">Cerrar</button>
+    </div>
+  </div>
+}

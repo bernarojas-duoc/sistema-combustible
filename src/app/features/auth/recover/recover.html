@@ -1,0 +1,81 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="text-center mb-4">
+      <i class="bi bi-shield-lock-fill auth-logo"></i>
+      <h1 class="auth-title mt-2">Recuperar contraseña</h1>
+      <p class="auth-subtitle">Paso {{ paso() }} de 3</p>
+    </div>
+
+    @if (error()) {
+      <div class="alert alert-danger"><i class="bi bi-exclamation-circle me-2"></i>{{ error() }}</div>
+    }
+    @if (exito()) {
+      <div class="alert alert-success"><i class="bi bi-check-circle me-2"></i>Contraseña actualizada. Redirigiendo...</div>
+    }
+
+    <!-- Paso 1: correo -->
+    @if (paso() === 1) {
+      <form [formGroup]="formEmail" (ngSubmit)="validarEmail()" novalidate>
+        <p class="small text-muted">Ingresa el correo asociado a tu cuenta.</p>
+        <div class="mb-3">
+          <label for="email" class="form-label">Correo electrónico</label>
+          <input id="email" type="email" class="form-control" formControlName="email"
+                 [class.is-invalid]="formEmail.controls.email.invalid && formEmail.controls.email.touched" />
+        </div>
+        <button type="submit" class="btn btn-warning w-100">Continuar</button>
+      </form>
+    }
+
+    <!-- Paso 2: código -->
+    @if (paso() === 2) {
+      <form [formGroup]="formCodigo" (ngSubmit)="validarCodigo()" novalidate>
+        <p class="small text-muted">
+          Enviamos un código de verificación a tu correo.
+          <span class="text-warning">(Demo: usa 1234)</span>
+        </p>
+        <div class="mb-3">
+          <label for="codigo" class="form-label">Código de verificación</label>
+          <input id="codigo" type="text" class="form-control" formControlName="codigo" placeholder="1234" />
+        </div>
+        <button type="submit" class="btn btn-warning w-100">Verificar código</button>
+      </form>
+    }
+
+    <!-- Paso 3: nueva contraseña -->
+    @if (paso() === 3) {
+      <form [formGroup]="formPassword" (ngSubmit)="cambiarPassword()" novalidate>
+        <div class="mb-3">
+          <label for="newPassword" class="form-label">Nueva contraseña</label>
+          <div class="input-group">
+            <input id="newPassword" [type]="verPassword() ? 'text' : 'password'" class="form-control"
+                   formControlName="newPassword"
+                   [class.is-invalid]="formPassword.controls.newPassword.invalid && formPassword.controls.newPassword.touched" />
+            <button type="button" class="btn btn-outline-secondary" (click)="togglePassword()">
+              <i class="bi" [class.bi-eye]="!verPassword()" [class.bi-eye-slash]="verPassword()"></i>
+            </button>
+          </div>
+          <app-password-strength [valor]="fuerzaValor()" />
+          @if (formPassword.controls.newPassword.touched && erroresPassword.length) {
+            <ul class="text-danger small mt-1 mb-0 ps-3">
+              @for (e of erroresPassword; track e) { <li>{{ e }}</li> }
+            </ul>
+          }
+        </div>
+        <div class="mb-3">
+          <label for="confirmPassword" class="form-label">Confirmar contraseña</label>
+          <input id="confirmPassword" [type]="verPassword() ? 'text' : 'password'" class="form-control"
+                 formControlName="confirmPassword"
+                 [class.is-invalid]="formPassword.errors?.['coinciden'] && formPassword.controls.confirmPassword.touched" />
+          @if (formPassword.errors?.['coinciden'] && formPassword.controls.confirmPassword.touched) {
+            <div class="text-danger small mt-1">{{ formPassword.errors?.['coinciden'] }}</div>
+          }
+        </div>
+        <button type="submit" class="btn btn-warning w-100">Guardar nueva contraseña</button>
+      </form>
+    }
+
+    <div class="text-center small mt-3">
+      <a routerLink="/login" class="text-warning text-decoration-none">Volver al inicio de sesión</a>
+    </div>
+  </div>
+</div>

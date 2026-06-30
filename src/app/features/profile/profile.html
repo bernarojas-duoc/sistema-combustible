@@ -1,0 +1,111 @@
+<div class="container content-area py-4">
+  <div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+      <h2 class="mb-0"><i class="bi bi-person-circle me-2"></i>Mi perfil</h2>
+      <small class="text-muted">Administra tus datos personales y tu contraseña</small>
+    </div>
+    @if (usuario) {
+      <span class="badge" [class]="usuario.rol === 'supervisor' ? 'bg-warning text-dark' : 'bg-info text-dark'">
+        {{ rol }}
+      </span>
+    }
+  </div>
+
+  <div class="row g-4">
+    <!-- Datos personales -->
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-person-vcard me-2"></i>Datos personales</div>
+        <div class="card-body">
+          @if (msgPerfil()) {
+            <div class="alert" [class]="msgPerfil().startsWith('ERROR') ? 'alert-danger' : 'alert-success'">
+              {{ msgPerfil().replace('ERROR: ', '') }}
+            </div>
+          }
+          <form [formGroup]="formPerfil" (ngSubmit)="guardarPerfil()" novalidate>
+            <div class="mb-3">
+              <label for="nombre" class="form-label">Nombre completo</label>
+              <input id="nombre" type="text" class="form-control" formControlName="nombre"
+                     [class.is-invalid]="formPerfil.controls.nombre.invalid && formPerfil.controls.nombre.touched" />
+            </div>
+            <div class="mb-3">
+              <label for="rut" class="form-label">RUT</label>
+              <input id="rut" type="text" class="form-control" formControlName="rut"
+                     [class.is-invalid]="formPerfil.controls.rut.invalid && formPerfil.controls.rut.touched" />
+              @if (formPerfil.controls.rut.errors?.['rut'] && formPerfil.controls.rut.touched) {
+                <div class="text-danger small mt-1">{{ formPerfil.controls.rut.errors?.['rut'] }}</div>
+              }
+            </div>
+            <div class="mb-3">
+              <label for="telefono" class="form-label">Teléfono</label>
+              <input id="telefono" type="text" class="form-control" formControlName="telefono"
+                     [class.is-invalid]="formPerfil.controls.telefono.invalid && formPerfil.controls.telefono.touched" />
+              @if (formPerfil.controls.telefono.errors?.['telefono'] && formPerfil.controls.telefono.touched) {
+                <div class="text-danger small mt-1">{{ formPerfil.controls.telefono.errors?.['telefono'] }}</div>
+              }
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Correo electrónico</label>
+              <input id="email" type="email" class="form-control" formControlName="email"
+                     [class.is-invalid]="formPerfil.controls.email.invalid && formPerfil.controls.email.touched" />
+            </div>
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-warning"><i class="bi bi-save me-1"></i>Guardar cambios</button>
+              <button type="button" class="btn btn-outline-secondary" (click)="cargarDatos()">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cambiar contraseña -->
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-key me-2"></i>Cambiar contraseña</div>
+        <div class="card-body">
+          @if (errorPassword()) {
+            <div class="alert alert-danger">{{ errorPassword() }}</div>
+          }
+          @if (msgPassword()) {
+            <div class="alert alert-success">{{ msgPassword() }}</div>
+          }
+          <form [formGroup]="formPassword" (ngSubmit)="cambiarPassword()" novalidate>
+            <div class="mb-3">
+              <label for="pwdActual" class="form-label">Contraseña actual</label>
+              <input id="pwdActual" [type]="verPassword() ? 'text' : 'password'" class="form-control"
+                     formControlName="pwdActual"
+                     [class.is-invalid]="formPassword.controls.pwdActual.invalid && formPassword.controls.pwdActual.touched" />
+            </div>
+            <div class="mb-3">
+              <label for="pwdNueva" class="form-label">Nueva contraseña</label>
+              <div class="input-group">
+                <input id="pwdNueva" [type]="verPassword() ? 'text' : 'password'" class="form-control"
+                       formControlName="pwdNueva"
+                       [class.is-invalid]="formPassword.controls.pwdNueva.invalid && formPassword.controls.pwdNueva.touched" />
+                <button type="button" class="btn btn-outline-secondary" (click)="togglePassword()">
+                  <i class="bi" [class.bi-eye]="!verPassword()" [class.bi-eye-slash]="verPassword()"></i>
+                </button>
+              </div>
+              <app-password-strength [valor]="formPassword.controls.pwdNueva.value ?? ''" />
+              @if (formPassword.controls.pwdNueva.touched && erroresPassword.length) {
+                <ul class="text-danger small mt-1 mb-0 ps-3">
+                  @for (e of erroresPassword; track e) { <li>{{ e }}</li> }
+                </ul>
+              }
+            </div>
+            <div class="mb-3">
+              <label for="pwdConfirm" class="form-label">Confirmar nueva contraseña</label>
+              <input id="pwdConfirm" [type]="verPassword() ? 'text' : 'password'" class="form-control"
+                     formControlName="pwdConfirm"
+                     [class.is-invalid]="formPassword.errors?.['coinciden'] && formPassword.controls.pwdConfirm.touched" />
+              @if (formPassword.errors?.['coinciden'] && formPassword.controls.pwdConfirm.touched) {
+                <div class="text-danger small mt-1">{{ formPassword.errors?.['coinciden'] }}</div>
+              }
+            </div>
+            <button type="submit" class="btn btn-warning"><i class="bi bi-shield-check me-1"></i>Actualizar contraseña</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

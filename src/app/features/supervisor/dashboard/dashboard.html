@@ -1,0 +1,161 @@
+<div class="container content-area py-4">
+  <div class="page-header">
+    <h2 class="mb-0">Dashboard</h2>
+    <small class="text-muted">Resumen operacional de la flota</small>
+  </div>
+
+  <!-- KPIs -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-value">{{ gastoMes | number:'1.0-0' }}</div>
+          <div class="kpi-label">Gasto del mes (CLP)</div>
+        </div>
+        <i class="bi bi-cash-coin kpi-icon text-warning"></i>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-value">{{ litrosMes | number:'1.0-0' }}</div>
+          <div class="kpi-label">Litros este mes</div>
+        </div>
+        <i class="bi bi-droplet-half kpi-icon text-info"></i>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-value">{{ alertasActivas }}</div>
+          <div class="kpi-label">Alertas activas</div>
+        </div>
+        <i class="bi bi-exclamation-triangle kpi-icon text-danger"></i>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-value">{{ mantencionesPendientes }}</div>
+          <div class="kpi-label">Mantenciones por vencer</div>
+        </div>
+        <i class="bi bi-tools kpi-icon text-secondary"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Últimas cargas -->
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-list-ul me-2"></i>Últimas cargas registradas</span>
+          <a routerLink="/supervisor/historial" class="btn btn-sm btn-outline-warning">Ver todo</a>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0">
+              <thead>
+                <tr><th>Fecha</th><th>Conductor</th><th>Bus</th><th>Litros</th><th>Km/L</th><th>Estado</th></tr>
+              </thead>
+              <tbody>
+                @for (c of recientes; track c.id) {
+                  <tr>
+                    <td>{{ c.fecha | fecha }}</td>
+                    <td><small>{{ conductor(c.conductorId) }}</small></td>
+                    <td><span class="badge bg-secondary">{{ patente(c.busId) }}</span></td>
+                    <td>{{ c.litros }} L</td>
+                    <td>{{ consumo(c) ?? '-' }}</td>
+                    <td><app-estado-badge [estado]="c.estado" [motivo]="c.motivoRechazo" /></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Consumo por bus -->
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-header"><i class="bi bi-bus-front me-2"></i>Consumo por bus (mes)</div>
+        <div class="card-body p-0">
+          <ul class="list-group list-group-flush">
+            @for (b of consumoBuses; track b.patente) {
+              <li class="list-group-item bg-transparent border-secondary py-2 px-3">
+                <div class="d-flex justify-content-between mb-1">
+                  <small class="text-light fw-bold">{{ b.patente }}</small>
+                  <small class="text-muted">{{ b.litros | number:'1.0-0' }} L</small>
+                </div>
+                <div class="progress" style="height: 6px">
+                  <div class="progress-bar bg-warning" [style.width.%]="b.pct"></div>
+                </div>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alertas de consumo -->
+  <div class="card mt-4">
+    <div class="card-header text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Alertas de consumo anómalo</div>
+    <div class="card-body p-0">
+      @if (alertas.length) {
+        <div class="table-responsive">
+          <table class="table table-dark mb-0">
+            <thead>
+              <tr><th>Fecha</th><th>Conductor</th><th>Bus</th><th>Litros</th><th>Km/L real</th><th>Km/L esperado</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (c of alertas; track c.id) {
+                <tr>
+                  <td>{{ c.fecha | fecha }}</td>
+                  <td>{{ conductor(c.conductorId) }}</td>
+                  <td>{{ patente(c.busId) }}</td>
+                  <td>{{ c.litros }} L</td>
+                  <td class="text-danger fw-bold">{{ consumo(c) ?? '-' }}</td>
+                  <td>{{ kmEsperado(c.busId) }}</td>
+                  <td><a routerLink="/supervisor/alertas" class="btn btn-sm btn-outline-danger py-0">Revisar</a></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="text-center text-success py-3"><i class="bi bi-check-circle me-2"></i>Sin alertas activas</div>
+      }
+    </div>
+  </div>
+
+  <!-- Gráfico mensual (Chart.js) con métrica seleccionable -->
+  @if (resumenMensual.length) {
+    <div class="card mt-4">
+      <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+        <span><i class="bi bi-bar-chart-line me-2"></i>Combustible por mes</span>
+        <div class="d-flex gap-2 align-items-center">
+          <div class="btn-group btn-group-sm" role="group" aria-label="Métrica del gráfico">
+            <button type="button" class="btn" [class.btn-warning]="metrica === 'gasto'" [class.btn-outline-warning]="metrica !== 'gasto'" (click)="setMetrica('gasto')">Gasto total</button>
+            <button type="button" class="btn" [class.btn-warning]="metrica === 'costoPorKm'" [class.btn-outline-warning]="metrica !== 'costoPorKm'" (click)="setMetrica('costoPorKm')">Costo por km</button>
+            <button type="button" class="btn" [class.btn-warning]="metrica === 'litros'" [class.btn-outline-warning]="metrica !== 'litros'" (click)="setMetrica('litros')">Litros</button>
+          </div>
+          <a routerLink="/supervisor/gasto" class="btn btn-sm btn-outline-secondary">Ver reporte</a>
+        </div>
+      </div>
+      <div class="card-body">
+        <app-bar-chart [labels]="chartLabels" [values]="chartValores" [prefijo]="chartPrefijo" [titulo]="chartTitulo" [resaltarMax]="metrica === 'costoPorKm'" />
+        @if (metrica === 'gasto') {
+          <p class="text-muted small mb-0 mt-2">
+            <i class="bi bi-info-circle me-1"></i>El gasto total depende de cuántos buses operaron. Para comparar meses de forma justa, usa <strong>Costo por km</strong>.
+          </p>
+        } @else if (metrica === 'costoPorKm') {
+          <p class="text-muted small mb-0 mt-2">
+            <i class="bi bi-info-circle me-1"></i>Cuánto cuesta el combustible por kilómetro recorrido. Es comparable entre meses sin importar el número de buses.
+          </p>
+        }
+      </div>
+    </div>
+  }
+</div>
